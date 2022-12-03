@@ -1,0 +1,7 @@
+# IDE files
+/.idea/
+/.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
