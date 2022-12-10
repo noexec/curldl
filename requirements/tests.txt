@@ -1,7 +1,6 @@
 pytest
 pytest-cov
 pytest-datadir
-pytest-httpbin
 pytest-localserver
 pytest-openfiles
 pytest-pylint
