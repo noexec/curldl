@@ -1,4 +1,0 @@
-lxml
-pycurl
-tenacity
-tqdm

@@ -1,3 +1,0 @@
-ipython
-pipdeptree
-pip-autoremove

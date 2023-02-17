@@ -1,6 +1,43 @@
+# PEP 621, 639 (draft)
+
 [project]
 name = "curldl"
 version = "1.0.0"
+description = "Safely download files using PycURL"
+keywords = ["cURL", "PycURL", "download"]
+
+readme = "README.md"
+license = "LGPL-3.0-or-later"
+license-files.paths = ["LICENSE.md"]
+
+authors = [{name = "Michael Orlov", email = "orlovm@noexec.org"}]
+classifiers = [
+    "Programming Language :: Python",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Development Status :: 4 - Beta"
+]
+
+requires-python = ">=3.8"
+dependencies = ["pycurl", "tenacity", "tqdm"]
+
+[project.optional-dependencies]
+environment = ["ipython", "pipdeptree", "pip-autoremove"]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-datadir",
+    "pytest-localserver",
+    "pytest-openfiles",
+    "pytest-pylint",
+    "pytest-regressions",
+    "pytest-repeat",
+    "pytest-subtests",
+    "pytest-sugar",
+    "pytest-timeout"
+]
+
+[project.urls]
+repository = "https://github.com/noexec/curldl"
 
 [tool.pytest.ini_options]
 pythonpath = [ "src" ]
