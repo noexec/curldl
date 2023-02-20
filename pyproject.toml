@@ -2,8 +2,8 @@
 
 [project]
 name = "curldl"
-version = "1.0.0"
-description = "Safely download files using PycURL"
+version = "0.0.1"
+description = "Safely and reliably download files with PycURL"
 keywords = ["cURL", "PycURL", "download"]
 
 readme = "README.md"
