@@ -40,5 +40,12 @@ test = [
 repository = "https://github.com/noexec/curldl"
 
 [tool.pytest.ini_options]
-pythonpath = [ "src" ]
-testpaths = [ "tests" ]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+filterwarnings = [
+    "ignore:::pytest_pylint.plugin",
+    "ignore:::pytest_pylint.pylint_util"
+]
+
+[tool.pylint.main]
