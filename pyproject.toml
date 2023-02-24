@@ -2,7 +2,7 @@
 
 [project]
 name = "curldl"
-version = "0.0.1"
+version = "0.1.0"
 description = "Safely and reliably download files with PycURL"
 keywords = ["cURL", "PycURL", "download"]
 
@@ -41,7 +41,7 @@ repository = "https://github.com/noexec/curldl"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-testpaths = ["tests"]
+testpaths = ["tests", "src"]
 
 filterwarnings = [
     "ignore:::pytest_pylint.plugin",
@@ -49,3 +49,11 @@ filterwarnings = [
 ]
 
 [tool.pylint.main]
+py-version = "3.8"
+
+[tool.pylint.format]
+expected-line-ending-format = "LF"
+max-line-length = 120
+
+[tool.pylint.design]
+min-public-methods = 1
