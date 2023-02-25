@@ -3,5 +3,4 @@ python -m curldl
 """
 from curldl import cli
 
-if __name__ == '__main__':
-    raise SystemExit(cli.CommandLine().main())
+raise SystemExit(cli.CommandLine().main())

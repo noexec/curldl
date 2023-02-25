@@ -5,20 +5,21 @@ import logging
 import sys
 from importlib import metadata
 
-from curldl.util import Utilities
+from curldl.util import Log
+
+log = logging.getLogger(__name__)
 
 
 class CommandLine:
     """Command-line interface"""
-    log = logging.getLogger('cli')
 
     def __init__(self):
         """Initialize argument parser and unhandled exception hook"""
-        sys.excepthook = Utilities.trace_unhandled_exception
+        sys.excepthook = Log.trace_unhandled_exception
         self.args = self._parse_arguments()
 
         self._configure_logger()
-        self.log.debug('Configured: %s', self.args)
+        log.debug('Configured: %s', self.args)
 
     def _configure_logger(self):
         loglevel = getattr(logging, self.args.log.upper())

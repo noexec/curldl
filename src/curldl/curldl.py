@@ -11,7 +11,9 @@ import typing
 import pycurl
 import tenacity
 
-from curldl.util import Utilities
+from curldl.util import FileSystem, Time
+
+log = logging.getLogger(__name__)
 
 
 class Downloader:
@@ -44,8 +46,6 @@ class Downloader:
         pycurl.E_ABORTED_BY_CALLBACK,
     }
 
-    log = logging.getLogger('download')
-
     def __init__(self, basedir: str, progress: bool = False, verbose: bool = False):
         """Initialize a PycURL-based downloader with a single pycurl.Curl instance
         that is reused and reconfigured for each download. The resulting downloader
@@ -72,15 +72,15 @@ class Downloader:
         curl.setopt(pycurl.VERBOSE, self._verbose)
         curl.setopt(pycurl.DEBUGFUNCTION, self._curl_debug_cb)
 
-        if initial_size := Utilities.get_file_size(path):
-            self.log.info('Resuming download of %s to %s at %s bytes', url, path, f'{initial_size:,}')
+        if initial_size := FileSystem.get_file_size(path):
+            log.info('Resuming download of %s to %s at %s bytes', url, path, f'{initial_size:,}')
             curl.setopt(pycurl.RESUME_FROM, initial_size)
         else:
-            self.log.info('Downloading %s to %s', url, path)
+            log.info('Downloading %s to %s', url, path)
 
         if timestamp:
-            curl.setopt(pycurl.HTTPHEADER, [f'If-Modified-Since: {Utilities.timestamp_to_http_date(timestamp)}'])
-            self.log.debug('Will update %s if modified since %s', path, Utilities.timestamp_to_dt(timestamp))
+            curl.setopt(pycurl.HTTPHEADER, [f'If-Modified-Since: {Time.timestamp_to_http_date(timestamp)}'])
+            log.debug('Will update %s if modified since %s', path, Time.timestamp_to_dt(timestamp))
 
         return curl, initial_size
 
@@ -95,10 +95,10 @@ class Downloader:
             nonlocal last_timestamp
             if timeit.default_timer() - last_timestamp >= self.PROGRESS_SEC:
                 last_timestamp = timeit.default_timer()
-                time_delta = Utilities.timestamp_delta(last_timestamp - begin_timestamp)
-                self.log.info('Downloading... %s%% of %s [%s]', f'{progress: >6.2f}', path, time_delta)
+                time_delta = Time.timestamp_delta(last_timestamp - begin_timestamp)
+                log.info('Downloading... %s%% of %s [%s]', f'{progress: >6.2f}', path, time_delta)
 
-        resume_size = Utilities.get_file_size(path)
+        resume_size = FileSystem.get_file_size(path)
         begin_timestamp = last_timestamp = timeit.default_timer()
         return curl_progress_cb
 
@@ -107,7 +107,7 @@ class Downloader:
         if not (debug_type := self.SUPPORTED_VERBOSITY.get(debug_type)):
             return
         debug_msg = debug_msg[:-1].decode('ascii', 'replace')
-        self.log.debug('Curl: [%s] %s', debug_type, debug_msg)
+        log.debug('Curl: [%s] %s', debug_type, debug_msg)
 
     def download(self, url: str, rel_path: str, expected_size: int | None = None,
                  expected_digests: dict[str, str] | None = None) -> None:
@@ -115,8 +115,8 @@ class Downloader:
         See Utilities.verify_size_and_digests() for format of expected digests."""
         path, path_partial = [self._prepare_full_path(rel_path + rel_ext) for rel_ext in ('', '.part')]
 
-        if Utilities.get_file_size(path, default=-1) == expected_size:
-            self.log.debug('Skipping update of %s since it has the expected size %s bytes', path, f'{expected_size:,}')
+        if FileSystem.get_file_size(path, default=-1) == expected_size:
+            log.debug('Skipping update of %s since it has the expected size %s bytes', path, f'{expected_size:,}')
             return
 
         if_modified_since_timestamp = None
@@ -125,7 +125,7 @@ class Downloader:
 
         if (expected_size is None and not expected_digests and os.path.exists(path_partial)
                 and os.path.getsize(path_partial) < self.MIN_ALWAYS_KEEP_PARTIAL_DOWNLOAD_BYTES):
-            self.log.info('Removing existing partial download of %s since no size/digest to compare to', path)
+            log.info('Removing existing partial download of %s since no size/digest to compare to', path)
             os.remove(path_partial)
 
         self._download_partial(url, path_partial, timestamp=if_modified_since_timestamp)
@@ -133,16 +133,16 @@ class Downloader:
             return
 
         try:
-            Utilities.verify_size_and_digests(path_partial, expected_size=expected_size,
-                                              expected_digests=expected_digests)
-            self.log.debug('Partial download of %s passed verification (%s / %s)',
+            FileSystem.verify_size_and_digests(path_partial, expected_size=expected_size,
+                                               expected_digests=expected_digests)
+            log.debug('Partial download of %s passed verification (%s / %s)',
                            path, expected_size, expected_digests)
         except ValueError:
-            self.log.info('Removing partial download of %s due to size/digest mismatch', path)
+            log.info('Removing partial download of %s due to size/digest mismatch', path)
             os.remove(path_partial)
             raise
 
-        self.log.debug('Renaming %s to %s', path_partial, path)
+        log.debug('Renaming %s to %s', path_partial, path)
         os.rename(path_partial, path)
 
     @tenacity.retry(stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
@@ -168,16 +168,16 @@ class Downloader:
         finally:
             response_code, response_descr = self._get_response_status(curl)
             if response_code in self.ACCEPTED_HTTP_STATUS:
-                self.log.info(('Finished downloading' if curl_success else 'Interrupted while downloading') +
+                log.info(('Finished downloading' if curl_success else 'Interrupted while downloading') +
                               f' {path} {initial_size:,} -> {os.path.getsize(path):,} bytes' +
                               f' ({response_code} {response_descr})'
-                              f' [{Utilities.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
-                Utilities.set_file_timestamp(path, curl.getinfo(pycurl.INFO_FILETIME))
+                              f' [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
+                FileSystem.set_file_timestamp(path, curl.getinfo(pycurl.INFO_FILETIME))
             elif response_code == http.HTTPStatus.NOT_MODIFIED:
-                self.log.info('Discarding %s because it is not more recent', path)
+                log.info('Discarding %s because it is not more recent', path)
                 self._rollback_file(path, initial_size, force_remove=True)
             else:
-                self.log.warning('Was downloading %s, but HTTP status is (%s %s)', path, response_code, response_descr)
+                log.warning('Was downloading %s, but HTTP status is (%s %s)', path, response_code, response_descr)
                 self._rollback_file(path, initial_size)
                 if curl_success:
                     raise RuntimeError(f'{response_descr} [{response_code}] when downloading {path},'
@@ -185,9 +185,9 @@ class Downloader:
 
     def _prepare_full_path(self, rel_path: str) -> str:
         """Verify that basedir-relative path is safe and create the required directories"""
-        Utilities.verify_rel_path_is_safe(self._basedir, rel_path)
+        FileSystem.verify_rel_path_is_safe(self._basedir, rel_path)
         path = os.path.join(self._basedir, rel_path)
-        Utilities.create_directory_for_path(path)
+        FileSystem.create_directory_for_path(path)
         return path
 
     def _get_response_status(self, curl: pycurl.Curl) -> tuple[int, str]:
@@ -207,8 +207,8 @@ class Downloader:
             raise ValueError(f'{path} has size {current_size:,} that is less than initial {initial_size,:}')
 
         if initial_size < self.MIN_PARTIAL_DOWNLOAD_BYTES or force_remove:
-            self.log.debug('Removing %s', path)
+            log.debug('Removing %s', path)
             os.remove(path)
         elif initial_size < current_size:
-            self.log.warning('Truncating %s back to %s bytes', path, f'{initial_size:,}')
+            log.warning('Truncating %s back to %s bytes', path, f'{initial_size:,}')
             os.truncate(path, initial_size)
