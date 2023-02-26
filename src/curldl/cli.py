@@ -52,9 +52,9 @@ class CommandLine:
             print(self._get_package_version())
             return
 
-        dl = Downloader(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
-        dl.download('http://noexec.org/public/papers/finch.pdf', 'finch.pdf',
-                    expected_size=2345384, expected_digests={'sha1': '085a927353d94b2de1a3936dc511785ae9c65464'})
+        downloader = Downloader(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
+        downloader.download('http://noexec.org/public/papers/finch.pdf', 'finch.pdf', expected_size=2345384,
+                            expected_digests={'sha1': '085a927353d94b2de1a3936dc511785ae9c65464'})
 
     @staticmethod
     def _get_package_version() -> str:
