@@ -9,6 +9,7 @@ from importlib import metadata
 import toml
 
 import curldl
+from curldl import Downloader
 from curldl.util import Log
 
 log = logging.getLogger(__name__)
@@ -51,13 +52,9 @@ class CommandLine:
             print(self._get_package_version())
             return
 
-        # dl = Downloader(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
-        # dl.download('http://noexec.org/public/papers/finch.pdf', 'finch.pdf',
-        #             expected_size=2345384, expected_digests={'sha1': '085a927353d94b2de1a3936dc511785ae9c65464'})
-        # dl.download('https://mirror.asergo.com/ubuntu-iso/22.10/ubuntu-22.10-desktop-amd64.iso',
-        #             'ubuntu-22.10-desktop-amd64.iso',
-        #             expected_size=4071903232,
-        #             expected_digests={'sha256': 'b98f13cd86839e70cb7757d46840230496b3febea309dd73bd5f81383474e47b'})
+        dl = Downloader(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
+        dl.download('http://noexec.org/public/papers/finch.pdf', 'finch.pdf',
+                    expected_size=2345384, expected_digests={'sha1': '085a927353d94b2de1a3936dc511785ae9c65464'})
 
     @staticmethod
     def _get_package_version() -> str:
