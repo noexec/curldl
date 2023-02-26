@@ -2,9 +2,13 @@
     python -m curldl"""
 import argparse
 import logging
+import os
 import sys
 from importlib import metadata
 
+import toml
+
+import curldl
 from curldl.util import Log
 
 log = logging.getLogger(__name__)
@@ -61,4 +65,5 @@ class CommandLine:
         try:
             return metadata.version(__package__)
         except metadata.PackageNotFoundError:
-            return 'develop'
+            pyproject = os.path.join(curldl.ROOT_DIR, os.path.pardir, os.path.pardir, 'pyproject.toml')
+            return toml.load(pyproject)['project']['version']

@@ -1,6 +1,6 @@
 # curldl
 
-curldl safely downloads files using PycURL.
+__curldl__ safely and reliably downloads files with PycURL.
 
 ## License
 
