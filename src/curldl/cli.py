@@ -54,7 +54,6 @@ class CommandLine:
         # dl = Downloader(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
         # dl.download('http://noexec.org/public/papers/finch.pdf', 'finch.pdf',
         #             expected_size=2345384, expected_digests={'sha1': '085a927353d94b2de1a3936dc511785ae9c65464'})
-        # dl.download('https://noexec.org/assets/test', 'test')
         # dl.download('https://mirror.asergo.com/ubuntu-iso/22.10/ubuntu-22.10-desktop-amd64.iso',
         #             'ubuntu-22.10-desktop-amd64.iso',
         #             expected_size=4071903232,
