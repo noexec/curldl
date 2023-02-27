@@ -63,3 +63,8 @@ class CommandLine:
         except metadata.PackageNotFoundError:
             pyproject = os.path.join(curldl.ROOT_DIR, os.path.pardir, os.path.pardir, 'pyproject.toml')
             return toml.load(pyproject)['project']['version']
+
+
+def main() -> object:
+    """Command-line static entry point"""
+    return CommandLine().main()

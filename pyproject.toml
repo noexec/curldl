@@ -7,8 +7,7 @@ description = "Safely and reliably download files with PycURL"
 keywords = ["cURL", "PycURL", "download"]
 
 readme = "README.md"
-license = "LGPL-3.0-or-later"
-license-files.paths = ["LICENSE.md"]
+license = {text = "LGPL-3.0-or-later"}
 
 authors = [{name = "Michael Orlov", email = "orlovm@noexec.org"}]
 classifiers = [
@@ -39,6 +38,9 @@ test = [
 
 [project.urls]
 repository = "https://github.com/noexec/curldl"
+
+[project.scripts]
+curldl = "curldl.cli:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
