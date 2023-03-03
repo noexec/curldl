@@ -1,4 +1,4 @@
-# PEP 621, 639 (draft)
+# PEP 518, 621, 639 (draft)
 
 [project]
 name = "curldl"
@@ -7,8 +7,7 @@ description = "Safely and reliably download files with PycURL"
 keywords = ["cURL", "PycURL", "download"]
 
 readme = "README.md"
-license = "LGPL-3.0-or-later"
-license-files.paths = ["LICENSE.md"]
+license = {text = "LGPL-3.0-or-later"}
 
 authors = [{name = "Michael Orlov", email = "orlovm@noexec.org"}]
 classifiers = [
@@ -18,15 +17,25 @@ classifiers = [
 ]
 
 requires-python = ">=3.8"
-dependencies = ["pycurl", "tenacity", "tqdm"]
+dependencies = [
+    "pycurl",
+    "tenacity",
+    "tqdm"
+]
 
 [project.optional-dependencies]
-environment = ["ipython", "pipdeptree", "pip-autoremove"]
+environment = [
+    "ipython",
+    "pipdeptree",
+    "pip-autoremove"
+]
+
 test = [
     "pytest",
     "pytest-cov",
     "pytest-datadir",
     "pytest-localserver",
+    "pytest-mypy",
     "pytest-openfiles",
     "pytest-pylint",
     "pytest-regressions",
@@ -34,11 +43,19 @@ test = [
     "pytest-subtests",
     "pytest-sugar",
     "pytest-timeout",
-    "toml"
+    "toml",
+    "types-pycurl",
+    "types-toml"
 ]
 
 [project.urls]
 repository = "https://github.com/noexec/curldl"
+
+[project.scripts]
+curldl = "curldl.cli:main"
+
+[build-system]
+requires = ["setuptools", "wheel"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
@@ -58,3 +75,20 @@ max-line-length = 120
 
 [tool.pylint.design]
 min-public-methods = 1
+
+[tool.mypy]
+warn_unused_configs = true
+
+allow_redefinition = true
+warn_unreachable = true
+
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+warn_incomplete_stub = true
+
+disallow_any_explicit = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+warn_return_any = true

@@ -3,4 +3,4 @@ python -m curldl
 """
 from curldl import cli
 
-raise SystemExit(cli.CommandLine().main())
+raise SystemExit(cli.main())
