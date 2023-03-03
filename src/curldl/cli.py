@@ -51,7 +51,7 @@ class CommandLine:
         parser.add_argument('-b', '--basedir', default='.', help='base download folder')
         parser.add_argument('-o', '--output', help='basedir-relative path to the downloaded file, '
                             'infer from URL if unspecified')
-        parser.add_argument('-s', '--size', help='expected download file size')
+        parser.add_argument('-s', '--size', type=int, help='expected download file size')
 
         parser.add_argument('-a', '--algo', choices=hash_algos, default='sha256',
                             metavar='ALGO', help='digest algorithm: ' + ', '.join(hash_algos))
@@ -82,8 +82,8 @@ class CommandLine:
     def main(self) -> object:
         """Command-line program entry point"""
         downloader = Downloader(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
-        downloader.download('http://noexec.org/public/papers/finch.pdf', 'finch.pdf', expected_size=2345384,
-                            expected_digests={'sha1': '085a927353d94b2de1a3936dc511785ae9c65464'})
+        downloader.download(self.args.url, rel_path=self.args.output, expected_size=self.args.size,
+                            expected_digests=self.args.digest and {self.args.algo: self.args.digest})
         return 0
 
     @staticmethod
