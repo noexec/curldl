@@ -25,7 +25,7 @@ class FileSystem:
             raise ValueError(f'Not a file or symlink to file: {path}')
 
     @classmethod
-    def create_directory_for_path(cls, path: str):
+    def create_directory_for_path(cls, path: str) -> None:
         """Create all path components for path, except for last"""
         path_dir = os.path.dirname(path)
         if not os.path.exists(path_dir):

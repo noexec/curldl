@@ -1,5 +1,4 @@
-"""Command-line interface, should be called via main module:
-    python -m curldl"""
+"""Command-line interface, should be called via main module: python -m curldl"""
 import argparse
 import logging
 import os
@@ -19,7 +18,7 @@ log = logging.getLogger(__name__)
 class CommandLine:
     """Command-line interface"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize argument parser and unhandled exception hook"""
         sys.excepthook = Log.trace_unhandled_exception
         self.args = self._parse_arguments()
@@ -50,11 +49,12 @@ class CommandLine:
         parser.add_argument('-V', '--version', action='version', version=version, help='show program version and exit')
 
         parser.add_argument('-b', '--basedir', default='.', help='base download folder')
-        parser.add_argument('-o', '--output', help='basedir-relative path to the downloaded file')
+        parser.add_argument('-o', '--output', help='basedir-relative path to the downloaded file, '
+                            'infer from URL if unspecified')
         parser.add_argument('-s', '--size', help='expected download file size')
 
         parser.add_argument('-a', '--algo', choices=hash_algos, default='sha256',
-                            metavar='ALGO', help='digest algorithm' + ', '.join(hash_algos))
+                            metavar='ALGO', help='digest algorithm: ' + ', '.join(hash_algos))
         parser.add_argument('-d', '--digest', help='expected hexadecimal digest value')
 
         parser.add_argument('-p', '--progress', action='store_true', help='log progress to stderr')
@@ -81,10 +81,10 @@ class CommandLine:
 
     def main(self) -> object:
         """Command-line program entry point"""
-
         downloader = Downloader(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
         downloader.download('http://noexec.org/public/papers/finch.pdf', 'finch.pdf', expected_size=2345384,
                             expected_digests={'sha1': '085a927353d94b2de1a3936dc511785ae9c65464'})
+        return 0
 
     @staticmethod
     def _get_package_version() -> str:
@@ -93,7 +93,7 @@ class CommandLine:
             return metadata.version(__package__)
         except metadata.PackageNotFoundError:
             pyproject = os.path.join(curldl.ROOT_DIR, os.path.pardir, os.path.pardir, 'pyproject.toml')
-            return toml.load(pyproject)['project']['version']
+            return str(toml.load(pyproject)['project']['version'])
 
 
 def main() -> object:

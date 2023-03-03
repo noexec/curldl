@@ -6,7 +6,7 @@ import http.client
 import logging
 import os.path
 import timeit
-import typing
+from typing import Callable
 
 import pycurl
 import tenacity
@@ -46,7 +46,7 @@ class Downloader:
         pycurl.E_ABORTED_BY_CALLBACK,
     }
 
-    def __init__(self, basedir: str, progress: bool = False, verbose: bool = False):
+    def __init__(self, basedir: str, progress: bool = False, verbose: bool = False) -> None:
         """Initialize a PycURL-based downloader with a single pycurl.Curl instance
         that is reused and reconfigured for each download. The resulting downloader
         object should be therefore not share between several threads."""
@@ -55,7 +55,8 @@ class Downloader:
         self._verbose = verbose
         self._unconfigured_curl = pycurl.Curl()
 
-    def _get_configured_curl(self, url: str, path: str, timestamp: int | float = None) -> tuple[pycurl.Curl, int]:
+    def _get_configured_curl(self, url: str, path: str,
+                             timestamp: int | float | None = None) -> tuple[pycurl.Curl, int]:
         curl = self._unconfigured_curl
         curl.reset()
 
@@ -84,9 +85,12 @@ class Downloader:
 
         return curl, initial_size
 
-    def _get_curl_progress_callback(self, path: str) -> typing.Callable:
+    def _get_curl_progress_callback(self, path: str) -> Callable[[int, int, int, int], None]:
         """Constructs a callback for XFERINFOFUNCTION"""
-        def curl_progress_cb(download_total: int, downloaded: int, upload_total: int, uploaded: int):
+        begin_timestamp = last_timestamp = timeit.default_timer()
+        resume_size = FileSystem.get_file_size(path)
+
+        def curl_progress_cb(download_total: int, downloaded: int, upload_total: int, uploaded: int) -> None:
             """Callback for XFERINFOFUNCTION"""
             if download_total == downloaded:
                 return
@@ -98,13 +102,12 @@ class Downloader:
                 time_delta = Time.timestamp_delta(last_timestamp - begin_timestamp)
                 log.info('Downloading... %s%% of %s [%s]', f'{progress: >6.2f}', path, time_delta)
 
-        resume_size = FileSystem.get_file_size(path)
-        begin_timestamp = last_timestamp = timeit.default_timer()
         return curl_progress_cb
 
     def _curl_debug_cb(self, debug_type: int, debug_msg: bytes) -> None:
         """Callback for DEBUGFUNCTION"""
-        if not (debug_type := self.SUPPORTED_VERBOSITY.get(debug_type)):
+        debug_type = self.SUPPORTED_VERBOSITY.get(debug_type)
+        if not debug_type:
             return
         debug_msg = debug_msg[:-1].decode('ascii', 'replace')
         log.debug('Curl: [%s] %s', debug_type, debug_msg)
@@ -151,7 +154,7 @@ class Downloader:
                            tenacity.retry_if_exception(lambda error: error.args[0] not in Downloader.RETRY_ABORT)),
                     before_sleep=tenacity.before_sleep_log(log, logging.DEBUG),
                     reraise=True)
-    def _download_partial(self, url: str, path: str, timestamp: int | float = None) -> None:
+    def _download_partial(self, url: str, path: str, timestamp: int | float | None = None) -> None:
         """Start or resume a partial download of a URL to absolute path.
 
         If timestamp of an already downloaded file is provided, remove the partial file
