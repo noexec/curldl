@@ -1,6 +1,9 @@
 """Cryptographic utilities"""
+from __future__ import annotations
+
 import hashlib
 import logging
+import os
 
 log = logging.getLogger(__name__)
 
@@ -17,7 +20,7 @@ class Cryptography:
                       if hashlib.new(algo).digest_size != 0)
 
     @classmethod
-    def verify_digest(cls, path: str, algo: str, expected_digest: str) -> None:
+    def verify_digest(cls, path: str | os.PathLike[str], algo: str, expected_digest: str) -> None:
         """Verify file digest and raise ValueError in case of mismatch.
             algo is a hash algorithm name accepted by hashlib.new()
             expected_digest is a hexadecimal string"""
