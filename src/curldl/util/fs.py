@@ -25,13 +25,16 @@ class FileSystem:
             raise ValueError(f'Relative path {rel_path} escapes base path {base}')
         if base_real != os.path.commonpath((base_real, path_real)):
             raise ValueError(f'Relative path {rel_path} escapes base path {base} after resolving symlinks')
+        if base == path or base_real == path_real:
+            raise ValueError(f'Relative path {rel_path} does not extend {base}')
 
         if os.path.islink(path) and not os.path.exists(path):
             raise ValueError(f'Path is a dangling symlink: {path}')
         if os.path.exists(path) and not os.path.isfile(path):
             raise ValueError(f'Exists and not a file or symlink to file: {path}')
+
         if str(rel_path).endswith(os.path.sep) or (os.path.altsep and str(rel_path).endswith(os.path.altsep)):
-            raise ValueError(f'Path unable to point to a file: {rel_path}')
+            raise ValueError(f'Path can only point to a directory: {rel_path}')
 
     @classmethod
     def create_directory_for_path(cls, path: str | os.PathLike[str]) -> None:

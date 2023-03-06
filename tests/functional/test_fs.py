@@ -11,7 +11,7 @@ import pytest
 from curldl.util import FileSystem
 
 
-def create_simple_file(file_path: pathlib.Path, file_size: int, create_dirs: bool = False) -> None:
+def create_simple_file(file_path: pathlib.Path, file_size: int, *, create_dirs: bool = False) -> None:
     """Create file of given size filled with the letter 'x'"""
     assert not os.path.exists(file_path)
     if create_dirs:
@@ -34,7 +34,7 @@ def current_working_directory(path: str | os.PathLike[str]) -> Iterator[None]:
 @pytest.mark.parametrize('rel_path', ['file.txt', 'dir1/dir2/file.txt', 'dir/../file', '../{}/dir1/../dir2/file.txt'])
 @pytest.mark.parametrize('create_file', [False, True])
 def test_verify_rel_path_is_safe(tmp_path: pathlib.Path, rel_path: str, create_file: bool) -> None:
-    """Verify arbitrary safe relative paths"""
+    """Verify arbitrary safe relative paths, also verify str argument"""
     rel_path_exp = rel_path.format(tmp_path.name)
     if create_file:
         create_simple_file(tmp_path / rel_path_exp, 128, create_dirs=True)
@@ -49,8 +49,11 @@ def test_verify_rel_path_is_safe(tmp_path: pathlib.Path, rel_path: str, create_f
 
 
 @pytest.mark.parametrize('rel_path', ['../file.txt', '/file', 'dir/', '.', '..', '/', '', '../{}/../../dir2/file.txt'])
-def test_verify_rel_path_is_unsafe(tmp_path: pathlib.Path, rel_path: str) -> None:
+@pytest.mark.parametrize('base_dir_exists', [True, False])
+def test_verify_rel_path_is_unsafe(tmp_path: pathlib.Path, rel_path: str, base_dir_exists: bool) -> None:
     """Verify arbitrary unsafe relative paths"""
+    if not base_dir_exists:
+        tmp_path = tmp_path / 'no_such_directory'
     rel_path = rel_path.format(tmp_path.name)
     with pytest.raises(ValueError):
         FileSystem.verify_rel_path_is_safe(tmp_path, rel_path)
@@ -85,7 +88,8 @@ def test_verify_symlink_is_safe(tmp_path: pathlib.Path,
                           ('dir1/dir2', 'dir1/file.txt', 'dir1/dir2/link.txt', '../file.txt'),
                           ('dir1', 'dir1/file.txt', 'dir2/link.txt', '../dir1/file.txt'),
                           ('dir1/dir2', 'dir1/file.txt', 'dir1/dir2/link.txt', '../../dir1/file.txt'),
-                          ('/', 'file.txt', 'link.txt', '/dev/null')])
+                          ('/', 'file.txt', 'link.txt', '/dev/null'),
+                          ('dir1', 'dir1/file.txt', 'dir1/link.txt', '../dir2/../dir1/file.txt')])
 def test_verify_rel_symlink_is_unsafe(tmp_path: pathlib.Path,
                                       base_dir: str, rel_file: str, rel_link: str, link_content: str) -> None:
     """Verify unsafe relative symlinks"""
@@ -96,6 +100,66 @@ def test_verify_rel_symlink_is_unsafe(tmp_path: pathlib.Path,
     create_simple_file(file_path, 5)
     with pytest.raises(ValueError):
         FileSystem.verify_rel_path_is_safe(base_path, link_path)
+
+
+@pytest.mark.parametrize('rel_file', ['file.txt', 'dir1/dir2/dir3/file.txt', 'dir1/../dir2/dir3/file.txt'])
+def test_create_directory_for_path(tmp_path: pathlib.Path, rel_file: str) -> None:
+    """Create directories for correct paths, also verify str argument"""
+    file_path = tmp_path / rel_file
+    FileSystem.create_directory_for_path(file_path)
+    FileSystem.create_directory_for_path(str(file_path))
+    assert file_path.parent.is_dir()
+    assert file_path.resolve().parent.is_dir()
+    assert not file_path.exists()
+
+
+def test_create_directory_for_bad_path(tmp_path: pathlib.Path) -> None:
+    """Fail creating directories for path containing existing file"""
+    file1_path = tmp_path / 'dir1' / 'file1.txt'
+    file2_path = file1_path / 'dir2' / 'file2.txt'
+    create_simple_file(file1_path, 0, create_dirs=True)
+    with pytest.raises(NotADirectoryError):
+        FileSystem.create_directory_for_path(file2_path)
+
+
+@pytest.mark.parametrize('algos', [None, [], ['sha1'], ['sha256'], ['sha1', 'sha256']])
+def test_verify_size_and_digests(tmp_path: pathlib.Path, algos: list[str] | None) -> None:
+    """Verify arbitrary file size and multiple digests, also verify str, None and uppercase arguments"""
+    create_simple_file(tmp_file_path := tmp_path / 'file.txt', 253)
+    base_digests = {
+        'sha1': 'DE4FCC1C5AFF0C2F455660a4548916c22a817f68',
+        'sha256': '1329e1bd71a6a7b275594ffb7ac73e14C4205C25A39EFB2F0E3F2A1B6C7B5856'
+    }
+    digests = None
+    if algos is not None:
+        digests = {algo: digest for algo, digest in base_digests.items() if algo in algos}
+
+    FileSystem.verify_size_and_digests(tmp_file_path, 253, digests)
+    FileSystem.verify_size_and_digests(str(tmp_file_path), None, digests)
+
+
+@pytest.mark.parametrize('algos', [['sha1'], ['sha256'], ['sha1', 'sha256']])
+def test_verify_bad_size_and_digests(tmp_path: pathlib.Path, algos: list[str]) -> None:
+    """Verify arbitrary incorrect file size and possibly unsupported multiple digests"""
+    create_simple_file(tmp_file_path := tmp_path / 'file.txt', 253)
+    base_digests = {
+        'sha1': 'DE4FCC1C5AFF0C2F455660a4548916c22a817f68',
+        'sha256': '1329e1bd71a6a7b275594ffb7ac73e14C4205C25A39EFB2F0E3F2A1B6C7B5856'
+    }
+    digests = None
+    if algos is not None:
+        digests = {algo: digest for algo, digest in base_digests.items() if algo in algos}
+
+    with pytest.raises(ValueError):
+        FileSystem.verify_size_and_digests(tmp_file_path, 256, None)
+
+    last_algo = tuple(digests.keys())[-1]
+    with pytest.raises(ValueError):
+        FileSystem.verify_size_and_digests(tmp_file_path, None, digests | {last_algo + 'x': digests[last_algo]})
+
+    digests[last_algo] = digests[last_algo][:-1] + '0'
+    with pytest.raises(ValueError):
+        FileSystem.verify_size_and_digests(tmp_file_path, None, digests)
 
 
 @pytest.mark.parametrize('tmp_file_size', [0, 1, 1024, 1025, 4096])
