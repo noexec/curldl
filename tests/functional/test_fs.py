@@ -3,17 +3,99 @@ from __future__ import annotations
 
 import os.path
 import pathlib
+from contextlib import contextmanager
+from typing import Iterator
 
 import pytest
 
 from curldl.util import FileSystem
 
 
-def create_simple_file(file_path: pathlib.Path, file_size: int) -> None:
+def create_simple_file(file_path: pathlib.Path, file_size: int, create_dirs: bool = False) -> None:
     """Create file of given size filled with the letter 'x'"""
     assert not os.path.exists(file_path)
+    if create_dirs:
+        file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(file_path, 'wb') as tmp_file:
         tmp_file.write(b'x' * file_size)
+
+
+@contextmanager
+def current_working_directory(path: str | os.PathLike[str]) -> Iterator[None]:
+    """Temporarily change cwd, usage: with current_working_directory(path): ..."""
+    cwd = os.getcwd()
+    try:
+        os.chdir(path)
+        yield
+    finally:
+        os.chdir(cwd)
+
+
+@pytest.mark.parametrize('rel_path', ['file.txt', 'dir1/dir2/file.txt', 'dir/../file', '../{}/dir1/../dir2/file.txt'])
+@pytest.mark.parametrize('create_file', [False, True])
+def test_verify_rel_path_is_safe(tmp_path: pathlib.Path, rel_path: str, create_file: bool) -> None:
+    """Verify arbitrary safe relative paths"""
+    rel_path_exp = rel_path.format(tmp_path.name)
+    if create_file:
+        create_simple_file(tmp_path / rel_path_exp, 128, create_dirs=True)
+
+    FileSystem.verify_rel_path_is_safe(tmp_path, pathlib.Path(rel_path_exp))
+    FileSystem.verify_rel_path_is_safe(str(tmp_path), rel_path_exp)
+
+    FileSystem.verify_rel_path_is_safe('/', rel_path.format('../../../..'))
+    with current_working_directory(tmp_path):
+        FileSystem.verify_rel_path_is_safe('.', pathlib.Path(rel_path_exp))
+        FileSystem.verify_rel_path_is_safe('./test', rel_path.format('test'))
+
+
+@pytest.mark.parametrize('rel_path', ['../file.txt', '/file', 'dir/', '.', '..', '/', '', '../{}/../../dir2/file.txt'])
+def test_verify_rel_path_is_unsafe(tmp_path: pathlib.Path, rel_path: str) -> None:
+    """Verify arbitrary unsafe relative paths"""
+    rel_path = rel_path.format(tmp_path.name)
+    with pytest.raises(ValueError):
+        FileSystem.verify_rel_path_is_safe(tmp_path, rel_path)
+
+
+@pytest.mark.parametrize('base_dir, rel_file, rel_link, link_content',
+                         [('.', 'dir1/file.txt', 'dir1/dir2/link.txt', '../file.txt'),
+                          ('dir1', 'dir1/file.txt', 'dir1/dir2/link.txt', '../file.txt'),
+                          ('.', 'dir1/file.txt', 'dir2/link.txt', '../dir1/file.txt'),
+                          ('dir1', 'dir1/file.txt', 'dir1/dir2/link.txt', '../../dir1/file.txt'),
+                          ('./.', 'dir1/dir2/file.txt', 'dir1/link.txt', 'dir2/file.txt'),
+                          ('/', 'dir 1/dir 2/a file.txt', 'dir 1/a link.txt', '../dir 1/dir 2/a file.txt')])
+@pytest.mark.parametrize('abs_link', [False, True])
+def test_verify_symlink_is_safe(tmp_path: pathlib.Path,
+                                base_dir: str, rel_file: str, rel_link: str, link_content: str,
+                                abs_link: bool) -> None:
+    """Verify safe relative and absolute, real and provisional (unsafe) symlinks"""
+    base_path, file_path, link_path = tmp_path / base_dir, tmp_path / rel_file, tmp_path / rel_link
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    link_path.parent.mkdir(parents=True, exist_ok=True)
+    link_path.symlink_to((link_path.parent / link_content).absolute() if abs_link else link_content)
+
+    with pytest.raises(ValueError):
+        FileSystem.verify_rel_path_is_safe(base_path, link_path)
+    create_simple_file(file_path, 5)
+    FileSystem.verify_rel_path_is_safe(base_path, link_path)
+
+
+@pytest.mark.parametrize('base_dir, rel_file, rel_link, link_content',
+                         [('.', 'dir1/file.txt', 'dir1/dir2/link.txt', '../file1.txt'),
+                          ('.', 'dir1/file.txt', 'dir1/dir2/link.txt', '..'),
+                          ('dir1/dir2', 'dir1/file.txt', 'dir1/dir2/link.txt', '../file.txt'),
+                          ('dir1', 'dir1/file.txt', 'dir2/link.txt', '../dir1/file.txt'),
+                          ('dir1/dir2', 'dir1/file.txt', 'dir1/dir2/link.txt', '../../dir1/file.txt'),
+                          ('/', 'file.txt', 'link.txt', '/dev/null')])
+def test_verify_rel_symlink_is_unsafe(tmp_path: pathlib.Path,
+                                      base_dir: str, rel_file: str, rel_link: str, link_content: str) -> None:
+    """Verify unsafe relative symlinks"""
+    base_path, file_path, link_path = tmp_path / base_dir, tmp_path / rel_file, tmp_path / rel_link
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    link_path.parent.mkdir(parents=True, exist_ok=True)
+    link_path.symlink_to(link_content)
+    create_simple_file(file_path, 5)
+    with pytest.raises(ValueError):
+        FileSystem.verify_rel_path_is_safe(base_path, link_path)
 
 
 @pytest.mark.parametrize('tmp_file_size', [0, 1, 1024, 1025, 4096])
