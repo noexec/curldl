@@ -143,8 +143,8 @@ def test_verify_bad_size_and_digests(tmp_path: pathlib.Path, algos: list[str]) -
     """Verify arbitrary incorrect file size and possibly unsupported multiple digests"""
     create_simple_file(tmp_file_path := tmp_path / 'file.txt', 253)
     base_digests = {
-        'sha1': 'DE4FCC1C5AFF0C2F455660a4548916c22a817f68',
-        'sha256': '1329e1bd71a6a7b275594ffb7ac73e14C4205C25A39EFB2F0E3F2A1B6C7B5856'
+        'sha1': 'de4fcc1c5aff0c2f455660a4548916c22a817f68',
+        'sha256': '1329e1bd71a6a7b275594ffb7ac73e14c4205c25a39efb2f0e3f2a1b6c7b5856'
     }
     digests = None
     if algos is not None:
@@ -152,6 +152,8 @@ def test_verify_bad_size_and_digests(tmp_path: pathlib.Path, algos: list[str]) -
 
     with pytest.raises(ValueError):
         FileSystem.verify_size_and_digests(tmp_file_path, 256, None)
+
+    FileSystem.verify_size_and_digests(tmp_file_path, None, digests)
 
     last_algo = tuple(digests.keys())[-1]
     with pytest.raises(ValueError):
