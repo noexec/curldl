@@ -62,6 +62,7 @@ requires = ["setuptools", "wheel"]
 addopts = "--mypy --pylint --cov --cov-report=term --cov-report=html"
 pythonpath = ["src"]
 testpaths = ["tests", "src"]
+cache_dir = "build/tests/pytest_cache"
 
 filterwarnings = [
     "ignore:::pytest_pylint.plugin",
@@ -81,6 +82,7 @@ max-args = 8
 
 [tool.mypy]
 warn_unused_configs = true
+cache_dir = "build/tests/mypy_cache"
 
 allow_redefinition = true
 warn_unreachable = true
@@ -97,7 +99,9 @@ disallow_subclassing_any = true
 warn_return_any = true
 
 [tool.coverage.run]
+data_file = "build/tests/coverage.sqlite"
 omit = ["tests_not_omitted/*"]
+
 branch = true
 dynamic_context = "test_function"
 
@@ -107,6 +111,6 @@ show_missing = true
 skip_covered = true
 
 [tool.coverage.html]
-directory = "build/htmlcov"
+directory = "build/tests/htmlcov"
 show_contexts = true
 skip_covered = false
