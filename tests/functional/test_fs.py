@@ -1,12 +1,14 @@
 """FileSystem class functional tests"""
 from __future__ import annotations
 
+import logging
 import os.path
 import pathlib
 from contextlib import contextmanager
 from typing import Iterator
 
 import pytest
+from _pytest.logging import LogCaptureFixture
 
 from curldl.util import FileSystem
 
@@ -146,9 +148,7 @@ def test_verify_bad_size_and_digests(tmp_path: pathlib.Path, algos: list[str]) -
         'sha1': 'de4fcc1c5aff0c2f455660a4548916c22a817f68',
         'sha256': '1329e1bd71a6a7b275594ffb7ac73e14c4205c25a39efb2f0e3f2a1b6c7b5856'
     }
-    digests = None
-    if algos is not None:
-        digests = {algo: digest for algo, digest in base_digests.items() if algo in algos}
+    digests = {algo: digest for algo, digest in base_digests.items() if algo in algos}
 
     with pytest.raises(ValueError):
         FileSystem.verify_size_and_digests(tmp_file_path, 256, None)
@@ -225,9 +225,21 @@ def test_set_file_timestamp(tmp_path: pathlib.Path, tmp_file_timestamp: int | fl
     assert tmp_file_stat.st_atime == tmp_file_stat.st_mtime == tmp_file_timestamp
 
 
+@pytest.mark.parametrize('tmp_file_timestamp', [-0.1, -1, -500])
+def test_set_negative_file_timestamp(tmp_path: pathlib.Path, tmp_file_timestamp: int | float) -> None:
+    """Negative file timestamp should be ignored"""
+    create_simple_file(tmp_file_path := tmp_path / 'file.txt', 0)
+    tmp_file_stat_before = os.stat(tmp_file_path)
+    FileSystem.set_file_timestamp(tmp_file_path, tmp_file_timestamp)
+    tmp_file_stat_after = os.stat(tmp_file_path)
+    assert tmp_file_stat_before == tmp_file_stat_after
+
+
 @pytest.mark.parametrize('tmp_path_timestamp', [7200, 1234567890.123456])
-def test_set_directory_timestamp(tmp_path: pathlib.Path, tmp_path_timestamp: int | float) -> None:
-    """Set arbitrary integer and floating-point directory timestamp, also verify str argument"""
+def test_set_directory_timestamp(tmp_path: pathlib.Path, caplog: LogCaptureFixture,
+                                 tmp_path_timestamp: int | float) -> None:
+    """Set arbitrary integer and floating-point directory timestamp, also verify str argument and cover DEBUG log"""
+    caplog.set_level(logging.DEBUG)
     FileSystem.set_file_timestamp(str(tmp_path), tmp_path_timestamp)
     tmp_file_stat = os.stat(tmp_path)
     assert tmp_file_stat.st_atime == tmp_file_stat.st_mtime == tmp_path_timestamp

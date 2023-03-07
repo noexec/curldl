@@ -9,3 +9,6 @@ __pycache__/
 # Build files
 /build/
 /src/*.egg-info/
+
+# Profiling files
+/.coverage

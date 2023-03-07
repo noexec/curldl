@@ -7,7 +7,7 @@ __curldl__ safely and reliably downloads files with PycURL.
 ```shell
 . venv/bin/activate
 pip install '.[test]'
-pytest --pylint --mypy
+pytest
 ```
 
 ## License

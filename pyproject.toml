@@ -59,6 +59,7 @@ curldl = "curldl.cli:main"
 requires = ["setuptools", "wheel"]
 
 [tool.pytest.ini_options]
+addopts = "--mypy --pylint --cov --cov-report=term --cov-report=html"
 pythonpath = ["src"]
 testpaths = ["tests", "src"]
 
@@ -94,3 +95,18 @@ disallow_any_explicit = true
 disallow_any_generics = true
 disallow_subclassing_any = true
 warn_return_any = true
+
+[tool.coverage.run]
+omit = ["tests_not_omitted/*"]
+branch = true
+dynamic_context = "test_function"
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
+skip_covered = true
+
+[tool.coverage.html]
+directory = "build/htmlcov"
+show_contexts = true
+skip_covered = false
