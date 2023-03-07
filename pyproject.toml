@@ -35,6 +35,7 @@ test = [
     "pytest-cov",
     "pytest-datadir",
     "pytest-localserver",
+    "pytest-mock",
     "pytest-mypy",
     "pytest-openfiles",
     "pytest-pylint",
