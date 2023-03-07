@@ -20,4 +20,9 @@ fi
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH="${src_dir}"
 
+export PYTHONDEVMODE=1
+export PYTHONWARNINGS="ignore::DeprecationWarning:pytest_sugar"     # pytest-sugar 0.9.6
+
+# export PYTHONTRACEMALLOC=20
+
 exec "$@"
