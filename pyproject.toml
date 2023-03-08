@@ -57,6 +57,9 @@ curldl = "curldl.cli:main"
 [build-system]
 requires = ["setuptools", "wheel"]
 
+[tool.setuptools.package-data]
+"curldl" = ["py.typed"]     # PIP 561
+
 [tool.pytest.ini_options]
 addopts = "--mypy --pylint --cov --cov-report=term --cov-report=html"
 pythonpath = ["src"]
