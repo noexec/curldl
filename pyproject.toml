@@ -32,6 +32,7 @@ environment = [
 ]
 
 test = [
+    "cli-test-helpers",     # CLI entry point testing
     "pytest",               # pytest testing framework
     "pytest-cov",           # code coverage (--cov)
     "pytest-datadir",
