@@ -66,8 +66,7 @@ cache_dir = "build/tests/pytest_cache"
 filterwarnings = [
     "default",
     "ignore::DeprecationWarning:pytest_pylint.plugin",          # pytest-pylint 0.19.0
-    "ignore::DeprecationWarning:pytest_pylint.pylint_util",     # pytest-pylint 0.19.0
-    "ignore::DeprecationWarning:pytest_sugar"                   # pytest-sugar 0.9.6
+    "ignore::DeprecationWarning:pytest_pylint.pylint_util"      # pytest-pylint 0.19.0
 ]
 
 [tool.pylint.main]
