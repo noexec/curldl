@@ -11,9 +11,18 @@ license = {text = "LGPL-3.0-or-later"}
 
 authors = [{name = "Michael Orlov", email = "orlovm@noexec.org"}]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Operating System :: OS Independent",
     "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Development Status :: 4 - Beta"
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: System :: Networking"
 ]
 
 requires-python = ">=3.8"
