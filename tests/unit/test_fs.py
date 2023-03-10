@@ -1,4 +1,4 @@
-"""FileSystem class functional tests"""
+"""FileSystem class unit tests"""
 from __future__ import annotations
 
 import logging

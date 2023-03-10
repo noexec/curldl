@@ -1,4 +1,4 @@
-"""Time class functional tests"""
+"""Time class unit tests"""
 from __future__ import annotations
 
 import datetime

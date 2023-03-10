@@ -1,4 +1,4 @@
-"""Log class functional tests"""
+"""Log class unit tests"""
 import logging
 import sys
 
