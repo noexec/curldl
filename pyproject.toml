@@ -44,7 +44,7 @@ test = [
     "pytest",               # pytest testing framework
     "pytest-cov",           # code coverage (--cov)
     "pytest-datadir",
-    "pytest-localserver",
+    "pytest-httpserver",    # HTTP server fixture
     "pytest-mock",          # mocker fixtures
     "pytest-mypy",          # type hinting verifier (--mypy)
     "pytest-pylint",        # linter (--pylint)
