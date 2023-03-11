@@ -93,15 +93,17 @@ def test_download_file(mocker: MockerFixture, tmp_path: pathlib.Path, httpserver
     if verbose:
         arguments += [['-v', '--verbose'][long_opt]]
 
-    request_handler = httpserver.expect_request('/location/file.txt', query_string={'x': '1', 'y': '2'}, method='GET')
+    request_handler = httpserver.expect_oneshot_request('/location/file.txt;a=b,c=d',
+                                                        query_string={'x': '1', 'y': '2'}, method='GET')
     request_handler.respond_with_data(file_data, content_type='text/plain')
-    arguments += [httpserver.url_for('/location/file.txt?x=1&y=2#fragment')]
+    arguments += [httpserver.url_for('/location/file.txt;a=b,c=d?y=2&x=1#fragment')]
 
     patch_logger_config(mocker, 'debug' if verbose else log_level)
     patch_system_environment(mocker, arguments)
     status_code = cli.main()
     assert status_code == 0
 
+    httpserver.check()  # type: ignore[no-untyped-call]
     assert file_path.is_file()
     with open(file_path, 'rb') as file:
         assert file.read() == file_data
