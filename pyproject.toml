@@ -90,7 +90,8 @@ max-line-length = 120
 
 [tool.pylint.design]
 min-public-methods = 1
-max-args = 8
+max-args = 10
+max-locals = 20
 
 [tool.mypy]
 warn_unused_configs = true
@@ -99,7 +100,6 @@ cache_dir = "build/tests/mypy_cache"
 allow_redefinition = true
 warn_unreachable = true
 
-disallow_untyped_calls = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true

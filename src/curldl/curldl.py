@@ -46,7 +46,7 @@ class Downloader:
         pycurl.E_ABORTED_BY_CALLBACK,
     }
 
-    def __init__(self, basedir: str, progress: bool = False, verbose: bool = False) -> None:
+    def __init__(self, basedir: str | os.PathLike[str], progress: bool = False, verbose: bool = False) -> None:
         """Initialize a PycURL-based downloader with a single pycurl.Curl instance
         that is reused and reconfigured for each download. The resulting downloader
         object should be therefore not share between several threads."""

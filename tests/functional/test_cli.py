@@ -103,7 +103,7 @@ def test_download_file(mocker: MockerFixture, tmp_path: pathlib.Path, httpserver
     status_code = cli.main()
     assert status_code == 0
 
-    httpserver.check()  # type: ignore[no-untyped-call]
+    httpserver.check()
     assert file_path.is_file()
     with open(file_path, 'rb') as file:
         assert file.read() == file_data
