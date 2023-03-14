@@ -131,15 +131,23 @@ class Downloader:
             log.info('Removing existing partial download of %s since no size/digest to compare to', path)
             os.remove(path_partial)
 
-        self._download_partial(url, path_partial, timestamp=if_modified_since_timestamp)
+        for attempt in tenacity.Retrying(
+            stop=tenacity.stop_after_attempt(self.RETRY_ATTEMPTS),
+            wait=tenacity.wait_fixed(self.RETRY_WAIT_SEC),
+            retry=(tenacity.retry_if_exception_type(pycurl.error) &
+                   tenacity.retry_if_exception(lambda error: error.args[0] not in self.RETRY_ABORT)),
+            before_sleep=tenacity.before_sleep_log(log, logging.DEBUG),
+            reraise=True
+        ):
+            with attempt:
+                self._download_partial(url, path_partial, timestamp=if_modified_since_timestamp)
         if not os.path.exists(path_partial):
             return
 
         try:
-            FileSystem.verify_size_and_digests(path_partial, expected_size=expected_size,
-                                               expected_digests=expected_digests)
-            log.debug('Partial download of %s passed verification (%s / %s)',
-                           path, expected_size, expected_digests)
+            FileSystem.verify_size_and_digests(path_partial,
+                                               expected_size=expected_size, expected_digests=expected_digests)
+            log.debug('Partial download of %s passed verification (%s / %s)', path, expected_size, expected_digests)
         except ValueError:
             log.info('Removing partial download of %s due to size/digest mismatch', path)
             os.remove(path_partial)
@@ -148,12 +156,6 @@ class Downloader:
         log.debug('Renaming %s to %s', path_partial, path)
         os.rename(path_partial, path)
 
-    @tenacity.retry(stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
-                    wait=tenacity.wait_fixed(RETRY_WAIT_SEC),
-                    retry=(tenacity.retry_if_exception_type(pycurl.error) &
-                           tenacity.retry_if_exception(lambda error: error.args[0] not in Downloader.RETRY_ABORT)),
-                    before_sleep=tenacity.before_sleep_log(log, logging.DEBUG),
-                    reraise=True)
     def _download_partial(self, url: str, path: str, timestamp: int | float | None = None) -> None:
         """Start or resume a partial download of a URL to absolute path.
 
@@ -172,9 +174,9 @@ class Downloader:
             response_code, response_descr = self._get_response_status(curl)
             if response_code in self.ACCEPTED_HTTP_STATUS:
                 log.info(('Finished downloading' if curl_success else 'Interrupted while downloading') +
-                              f' {path} {initial_size:,} -> {os.path.getsize(path):,} bytes' +
-                              f' ({response_code} {response_descr})'
-                              f' [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
+                         f' {path} {initial_size:,} -> {os.path.getsize(path):,} bytes' +
+                         f' ({response_code} {response_descr})'
+                         f' [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
                 FileSystem.set_file_timestamp(path, curl.getinfo(pycurl.INFO_FILETIME))
             elif response_code == http.HTTPStatus.NOT_MODIFIED:
                 log.info('Discarding %s because it is not more recent', path)
