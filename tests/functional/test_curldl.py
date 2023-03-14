@@ -1,7 +1,6 @@
 """curldl functional tests"""
 from __future__ import annotations
 
-import hashlib
 import logging
 import pathlib
 
@@ -9,23 +8,9 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 from pytest_httpserver import HTTPServer
 
+from unit.test_downloader import compute_hex_digest, read_file_content
 import curldl
 from curldl import util
-
-
-def compute_hex_digest(data: bytes, algo: str) -> str:
-    """Compute digest for given input"""
-    assert algo in hashlib.algorithms_available
-    digest = hashlib.new(algo)
-    digest.update(data)
-    return digest.hexdigest()
-
-
-def read_file_content(file_path: pathlib.Path) -> bytes:
-    """Read complete contents of a file"""
-    assert file_path.is_file()
-    with open(file_path, 'rb') as file:
-        return file.read()
 
 
 @pytest.mark.parametrize('requests, file_path',
