@@ -1,4 +1,4 @@
-"""Downloader class functional tests"""
+"""curldl functional tests"""
 from __future__ import annotations
 
 import hashlib
@@ -56,18 +56,20 @@ def test_file_downloads(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: 
             httpserver.expect_oneshot_request(
                 '/location/filename' + file_suffix, method='GET').respond_with_data(file_content)
 
-            if req_count < 0 or not file_path_is_safe:
+            if req_count > 0 and file_path_is_safe:
+                downloader.download(httpserver.url_for('/location/filename') + file_suffix,
+                                    file_path + file_suffix, expected_size=size, expected_digests=file_digests)
+                assert read_file_content(file_local_path) == file_content
+
+            else:
                 with pytest.raises(RuntimeError if file_path_is_safe else ValueError):
                     downloader.download(httpserver.url_for('/location/filename') + file_suffix + '.404',
                                         file_path + file_suffix, expected_size=size, expected_digests=file_digests)
+                assert not file_local_path.exists()
+
                 if file_path_is_safe:
                     with pytest.raises(AssertionError):
                         httpserver.check()
-                assert not file_local_path.exists()
-                httpserver.clear()
-                continue
+                    httpserver.clear()
 
-            downloader.download(httpserver.url_for('/location/filename') + file_suffix,
-                                file_path + file_suffix, expected_size=size, expected_digests=file_digests)
             httpserver.check()
-            assert read_file_content(file_local_path) == file_content

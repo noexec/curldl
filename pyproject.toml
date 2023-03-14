@@ -53,6 +53,7 @@ test = [
     "pytest-subtests",
     "pytest-sugar",         # look-and-feel for pytest progress
     "pytest-timeout",
+    "pytest-xdist[psutil]", # distributed tests (-n logical --no-pylint)
     "types-pycurl",         # pycurl type hints for mypy
     "types-toml"            # toml type hints for mypy
 ]
