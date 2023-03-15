@@ -20,13 +20,6 @@ class Downloader:
     """Interface for downloading functionality of PycURL"""
     USER_AGENT = 'curl/7.61.1'  # 2018-09-05
 
-    TIMEOUT_SEC = 120
-    MAX_REDIRECTS = 5
-    PROGRESS_SEC = 2
-
-    MIN_PARTIAL_DOWNLOAD_BYTES = 64 * 1024
-    MIN_ALWAYS_KEEP_PARTIAL_DOWNLOAD_BYTES = 64 * 1024 ** 2
-
     ACCEPTED_HTTP_STATUS = {
         http.HTTPStatus.OK,
         http.HTTPStatus.PARTIAL_CONTENT,
@@ -39,20 +32,33 @@ class Downloader:
         pycurl.INFOTYPE_HEADER_OUT: 'OHDR',
     }
 
-    RETRY_ATTEMPTS = 3
-    RETRY_WAIT_SEC = 2
     RETRY_ABORT = {
         pycurl.E_WRITE_ERROR,
         pycurl.E_ABORTED_BY_CALLBACK,
     }
 
-    def __init__(self, basedir: str | os.PathLike[str], *, progress: bool = False, verbose: bool = False) -> None:
+    def __init__(self, basedir: str | os.PathLike[str], *, progress: bool = False, verbose: bool = False,
+                 retry_attempts: int = 3, retry_wait_sec: int | float = 2,
+                 timeout_sec: int | float = 120, max_redirects: int = 5, progress_sec: int | float = 2,
+                 min_part_bytes: int = 64 * 1024, min_always_keep_part_bytes: int = 64 * 1024 ** 2) -> None:
         """Initialize a PycURL-based downloader with a single pycurl.Curl instance
         that is reused and reconfigured for each download. The resulting downloader
-        object should be therefore not share between several threads."""
+        object should be therefore not shared between several threads."""
         self._basedir = basedir
+
         self._progress = progress
         self._verbose = verbose
+
+        self._retry_attempts = retry_attempts
+        self._retry_wait_sec = retry_wait_sec
+
+        self._timeout_sec = timeout_sec
+        self._max_redirects = max_redirects
+        self._progress_sec = progress_sec
+
+        self._min_part_bytes = min_part_bytes
+        self._min_always_keep_part_bytes = min_always_keep_part_bytes
+
         self._unconfigured_curl = pycurl.Curl()
 
     def _get_configured_curl(self, url: str, path: str, *,
@@ -65,8 +71,8 @@ class Downloader:
 
         curl.setopt(pycurl.OPT_FILETIME, True)
         curl.setopt(pycurl.FOLLOWLOCATION, True)
-        curl.setopt(pycurl.MAXREDIRS, self.MAX_REDIRECTS)
-        curl.setopt(pycurl.TIMEOUT, self.TIMEOUT_SEC)
+        curl.setopt(pycurl.MAXREDIRS, self._max_redirects)
+        curl.setopt(pycurl.TIMEOUT, self._timeout_sec)
 
         curl.setopt(pycurl.NOPROGRESS, not self._progress)
         curl.setopt(pycurl.XFERINFOFUNCTION, self._get_curl_progress_callback(path))
@@ -97,7 +103,7 @@ class Downloader:
             progress = 100 * (downloaded + resume_size) / (download_total + resume_size)
 
             nonlocal last_timestamp
-            if timeit.default_timer() - last_timestamp >= self.PROGRESS_SEC:
+            if timeit.default_timer() - last_timestamp >= self._progress_sec:
                 last_timestamp = timeit.default_timer()
                 time_delta = Time.timestamp_delta(last_timestamp - begin_timestamp)
                 log.info('Downloading... %s%% of %s [%s]', f'{progress: >6.2f}', path, time_delta)
@@ -127,13 +133,13 @@ class Downloader:
             if_modified_since_timestamp = os.path.getmtime(path)
 
         if (size is None and not digests and os.path.exists(path_partial)
-                and os.path.getsize(path_partial) < self.MIN_ALWAYS_KEEP_PARTIAL_DOWNLOAD_BYTES):
+                and os.path.getsize(path_partial) < self._min_always_keep_part_bytes):
             log.info('Removing existing partial download of %s since no size/digest to compare to', path)
             os.remove(path_partial)
 
         for attempt in tenacity.Retrying(
-            stop=tenacity.stop_after_attempt(self.RETRY_ATTEMPTS),
-            wait=tenacity.wait_fixed(self.RETRY_WAIT_SEC),
+            stop=tenacity.stop_after_attempt(self._retry_attempts),
+            wait=tenacity.wait_fixed(self._retry_wait_sec),
             retry=(tenacity.retry_if_exception_type(pycurl.error) &
                    tenacity.retry_if_exception(lambda error: error.args[0] not in self.RETRY_ABORT)),
             before_sleep=tenacity.before_sleep_log(log, logging.DEBUG),
@@ -210,7 +216,7 @@ class Downloader:
             os.remove(path)
             raise ValueError(f'{path} has size {current_size:,} that is less than initial {initial_size,:}')
 
-        if initial_size < self.MIN_PARTIAL_DOWNLOAD_BYTES or force_remove:
+        if initial_size < self._min_part_bytes or force_remove:
             log.debug('Removing %s', path)
             os.remove(path)
         elif initial_size < current_size:

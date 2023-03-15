@@ -11,7 +11,6 @@ import pathlib
 import pytest
 from _pytest.logging import LogCaptureFixture
 from pytest_httpserver import HTTPServer
-from pytest_mock import MockerFixture
 from werkzeug import Request, Response
 
 import curldl
@@ -38,17 +37,15 @@ def read_file_content(file_path: pathlib.Path) -> bytes:
 @pytest.mark.parametrize('verbose', [False, True])
 @pytest.mark.parametrize('log_level', [logging.WARNING, logging.INFO, logging.DEBUG])
 def test_successful_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: LogCaptureFixture,
-                             mocker: MockerFixture,
                              size: int | None, digests: dict[str, str] | None,
                              progress: bool, verbose: bool, log_level: int) -> None:
     """One-shot successful download, exercising all possible parameters"""
     caplog.set_level(log_level)
-    mocker.patch.object(curldl.Downloader, 'PROGRESS_SEC', 0)
 
     file_data = b'x' * 100
     httpserver.expect_oneshot_request('/file.txt', method='GET').respond_with_data(file_data)
 
-    downloader = curldl.Downloader(basedir=tmp_path, progress=progress, verbose=verbose)
+    downloader = curldl.Downloader(basedir=tmp_path, progress=progress, verbose=verbose, progress_sec=0)
     downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=size, digests=digests)
     httpserver.check()
     assert read_file_content(tmp_path / 'file.txt') == file_data
@@ -91,14 +88,10 @@ def test_failed_digest_check(tmp_path: pathlib.Path, httpserver: HTTPServer, cap
 
 
 def test_successful_download_after_failure(tmp_path: pathlib.Path, httpserver: HTTPServer,
-                                           caplog: LogCaptureFixture, mocker: MockerFixture) -> None:
+                                           caplog: LogCaptureFixture) -> None:
     """Download that succeeds after initial failure"""
     caplog.set_level(logging.DEBUG)
-
-    mocker.patch.object(curldl.Downloader, 'RETRY_WAIT_SEC', 0)
-    mocker.patch.object(curldl.Downloader, 'RETRY_ATTEMPTS', 5)
-    mocker.patch.object(curldl.Downloader, 'MAX_REDIRECTS', 0)
-    retries_left = curldl.Downloader.RETRY_ATTEMPTS
+    retries_left = 5
 
     def eventual_response_handler_cb(request: Request) -> Response:
         """Fail curl with a redirect in first RETRY_ATTEMPTS-1 requests, then respond"""
@@ -109,32 +102,31 @@ def test_successful_download_after_failure(tmp_path: pathlib.Path, httpserver: H
                             headers={'Location': httpserver.url_for('/elsewhere')})
         return Response(b'xxx')
 
+    downloader = curldl.Downloader(basedir=tmp_path, retry_wait_sec=0, retry_attempts=retries_left, max_redirects=0)
     httpserver.expect_request('/file.txt', method='GET').respond_with_handler(eventual_response_handler_cb)
-
-    downloader = curldl.Downloader(basedir=tmp_path)
     downloader.download(httpserver.url_for('/file.txt'), 'file.txt')
 
     httpserver.check()
     assert read_file_content(tmp_path / 'file.txt') == b'xxx'
 
 
-def test_redirected_download(tmp_path: pathlib.Path, httpserver: HTTPServer, mocker: MockerFixture) -> None:
+def test_redirected_download(tmp_path: pathlib.Path, httpserver: HTTPServer) -> None:
     """Download that succeeds after several redirects, also check file timestamp"""
-    mocker.patch.object(curldl.Downloader, 'MAX_REDIRECTS', 5)
+    max_redirects = 5
 
     def redirect_response_handler_cb(request: Request) -> Response:
         """Redirect several times, then respond"""
-        if request.path != '/file.txt' + ('+' * curldl.Downloader.MAX_REDIRECTS):
+        if request.path != '/file.txt' + ('+' * max_redirects):
             return Response(http.client.responses[status := http.HTTPStatus.TEMPORARY_REDIRECT], status=status,
                             headers=[('Location', httpserver.url_for(request.path + '+'))])
         return Response(b'x' * 4096, mimetype='application/octet-stream',
                         headers={'Last-Modified': 'Fri, 13 Feb 2009 23:31:30 GMT'})
 
-    for redirect_idx in range(curldl.Downloader.MAX_REDIRECTS + 1):
+    for redirect_idx in range(max_redirects + 1):
         httpserver.expect_ordered_request(
             '/file.txt' + ('+' * redirect_idx), method='GET').respond_with_handler(redirect_response_handler_cb)
 
-    downloader = curldl.Downloader(basedir=tmp_path, verbose=True)
+    downloader = curldl.Downloader(basedir=tmp_path, verbose=True, max_redirects=max_redirects)
     downloader.download(httpserver.url_for('/file.txt'), 'file.txt')
     httpserver.check()
 

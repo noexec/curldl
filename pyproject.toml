@@ -92,6 +92,7 @@ max-line-length = 120
 [tool.pylint.design]
 min-public-methods = 1
 max-args = 10
+max-attributes = 15
 max-locals = 20
 
 [tool.mypy]
