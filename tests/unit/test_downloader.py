@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import hashlib
 import http
+import http.client
 import logging
+import os
 import pathlib
 
 import pytest
@@ -104,7 +106,7 @@ def test_successful_download_after_failure(tmp_path: pathlib.Path, httpserver: H
         retries_left -= 1
         if retries_left != 0:
             return Response("Redirect (fails PycURL)", status=http.HTTPStatus.TEMPORARY_REDIRECT,
-                            headers=[('Location', httpserver.url_for('/elsewhere'))])
+                            headers={'Location': httpserver.url_for('/elsewhere')})
         return Response(b'xxx')
 
     httpserver.expect_request('/file.txt', method='GET').respond_with_handler(eventual_response_handler_cb)
@@ -114,3 +116,28 @@ def test_successful_download_after_failure(tmp_path: pathlib.Path, httpserver: H
 
     httpserver.check()
     assert read_file_content(tmp_path / 'file.txt') == b'xxx'
+
+
+def test_redirected_download(tmp_path: pathlib.Path, httpserver: HTTPServer, mocker: MockerFixture) -> None:
+    """Download that succeeds after several redirects, also check file timestamp"""
+    mocker.patch.object(curldl.Downloader, 'MAX_REDIRECTS', 5)
+
+    def redirect_response_handler_cb(request: Request) -> Response:
+        """Redirect several times, then respond"""
+        if request.path != '/file.txt' + ('+' * curldl.Downloader.MAX_REDIRECTS):
+            return Response(http.client.responses[status := http.HTTPStatus.TEMPORARY_REDIRECT], status=status,
+                            headers=[('Location', httpserver.url_for(request.path + '+'))])
+        return Response(b'x' * 4096, mimetype='application/octet-stream',
+                        headers={'Last-Modified': 'Fri, 13 Feb 2009 23:31:30 GMT'})
+
+    for redirect_idx in range(curldl.Downloader.MAX_REDIRECTS + 1):
+        httpserver.expect_ordered_request(
+            '/file.txt' + ('+' * redirect_idx), method='GET').respond_with_handler(redirect_response_handler_cb)
+
+    downloader = curldl.Downloader(basedir=tmp_path, verbose=True)
+    downloader.download(httpserver.url_for('/file.txt'), 'file.txt')
+    httpserver.check()
+
+    file_stat = os.stat(tmp_path / 'file.txt')
+    assert file_stat.st_mtime == file_stat.st_atime == 1234567890
+    assert read_file_content(tmp_path / 'file.txt') == b'x' * 4096
