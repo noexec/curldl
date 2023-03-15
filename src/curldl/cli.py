@@ -82,8 +82,8 @@ class CommandLine:
     def main(self) -> object:
         """Command-line program entry point"""
         downloader = Downloader(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
-        downloader.download(self.args.url, rel_path=self.args.output, expected_size=self.args.size,
-                            expected_digests=self.args.digest and {self.args.algo: self.args.digest})
+        downloader.download(self.args.url, rel_path=self.args.output, size=self.args.size,
+                            digests=self.args.digest and {self.args.algo: self.args.digest})
         return 0
 
     @staticmethod

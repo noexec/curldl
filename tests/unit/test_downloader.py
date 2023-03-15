@@ -49,7 +49,7 @@ def test_successful_download(tmp_path: pathlib.Path, httpserver: HTTPServer, cap
     httpserver.expect_oneshot_request('/file.txt', method='GET').respond_with_data(file_data)
 
     downloader = curldl.Downloader(basedir=tmp_path, progress=progress, verbose=verbose)
-    downloader.download(httpserver.url_for('/file.txt'), 'file.txt', expected_size=size, expected_digests=digests)
+    downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=size, digests=digests)
     httpserver.check()
     assert read_file_content(tmp_path / 'file.txt') == file_data
 
@@ -65,7 +65,7 @@ def test_failed_size_check(tmp_path: pathlib.Path, httpserver: HTTPServer, caplo
 
     downloader = curldl.Downloader(basedir=tmp_path)
     with pytest.raises(ValueError):
-        downloader.download(httpserver.url_for('/file.txt'), 'file.txt', expected_size=size)
+        downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=size)
 
     httpserver.check()
     assert not (tmp_path / 'file.txt').exists()
@@ -83,7 +83,7 @@ def test_failed_digest_check(tmp_path: pathlib.Path, httpserver: HTTPServer, cap
 
     downloader = curldl.Downloader(basedir=tmp_path)
     with pytest.raises(ValueError):
-        downloader.download(httpserver.url_for('/file.txt'), 'file.txt', expected_digests=digests)
+        downloader.download(httpserver.url_for('/file.txt'), 'file.txt', digests=digests)
 
     httpserver.check()
     assert not (tmp_path / 'file.txt').exists()

@@ -136,8 +136,8 @@ def test_verify_size_and_digests(tmp_path: pathlib.Path, algos: list[str] | None
     if algos is not None:
         digests = {algo: digest for algo, digest in base_digests.items() if algo in algos}
 
-    FileSystem.verify_size_and_digests(tmp_file_path, 253, digests)
-    FileSystem.verify_size_and_digests(str(tmp_file_path), None, digests)
+    FileSystem.verify_size_and_digests(tmp_file_path, size=253, digests=digests)
+    FileSystem.verify_size_and_digests(str(tmp_file_path), digests=digests)
 
 
 @pytest.mark.parametrize('algos', [['sha1'], ['sha256'], ['sha1', 'sha256']])
@@ -151,17 +151,17 @@ def test_verify_bad_size_and_digests(tmp_path: pathlib.Path, algos: list[str]) -
     digests = {algo: digest for algo, digest in base_digests.items() if algo in algos}
 
     with pytest.raises(ValueError):
-        FileSystem.verify_size_and_digests(tmp_file_path, 256, None)
+        FileSystem.verify_size_and_digests(tmp_file_path, size=256)
 
-    FileSystem.verify_size_and_digests(tmp_file_path, None, digests)
+    FileSystem.verify_size_and_digests(tmp_file_path, digests=digests)
 
     last_algo = tuple(digests.keys())[-1]
     with pytest.raises(ValueError):
-        FileSystem.verify_size_and_digests(tmp_file_path, None, digests | {last_algo + 'x': digests[last_algo]})
+        FileSystem.verify_size_and_digests(tmp_file_path, digests=digests | {last_algo + 'x': digests[last_algo]})
 
     digests[last_algo] = digests[last_algo][:-1] + '0'
     with pytest.raises(ValueError):
-        FileSystem.verify_size_and_digests(tmp_file_path, None, digests)
+        FileSystem.verify_size_and_digests(tmp_file_path, digests=digests)
 
 
 @pytest.mark.parametrize('tmp_file_size', [0, 1, 1024, 1025, 4096])

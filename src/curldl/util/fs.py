@@ -45,24 +45,23 @@ class FileSystem:
             os.makedirs(path_dir)
 
     @classmethod
-    def verify_size_and_digests(cls, path: str | os.PathLike[str], expected_size: int | None = None,
-                                expected_digests: dict[str, str] | None = None) -> None:
+    def verify_size_and_digests(cls, path: str | os.PathLike[str], *, size: int | None = None,
+                                digests: dict[str, str] | None = None) -> None:
         """Verify file size and digests and raise ValueError in case of mismatch.
-            expected_digests is a dict of hash algorithms and digests to check
-            (see Cryptography.verify_digest())."""
-        if expected_size is not None:
-            cls.verify_size(path, expected_size=expected_size)
-        for algo, digest in expected_digests.items() if expected_digests else {}:
-            Cryptography.verify_digest(path, algo=algo, expected_digest=digest)
+        digests is a dict of hash algorithms and digests to check (see Cryptography.verify_digest())."""
+        if size is not None:
+            cls.verify_size(path, size=size)
+        for algo, digest in digests.items() if digests else {}:
+            Cryptography.verify_digest(path, algo=algo, digest=digest)
 
     @classmethod
-    def verify_size(cls, path: str | os.PathLike[str], expected_size: int) -> None:
+    def verify_size(cls, path: str | os.PathLike[str], size: int) -> None:
         """Verify file size and raise ValueError in case of mismatch or if not a file"""
         path_size = os.path.getsize(path)
         if not os.path.isfile(path):
             raise ValueError(f'Not a file: {path}')
-        if path_size != expected_size:
-            raise ValueError(f'Size mismatch for {path}: {path_size:,} instead of {expected_size:,} bytes')
+        if path_size != size:
+            raise ValueError(f'Size mismatch for {path}: {path_size:,} instead of {size:,} bytes')
         log.debug('Successfully verified file size of %s', path)
 
     @staticmethod

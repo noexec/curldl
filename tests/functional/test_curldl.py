@@ -43,13 +43,13 @@ def test_file_downloads(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: 
 
             if req_count > 0 and file_path_is_safe:
                 downloader.download(httpserver.url_for('/location/filename') + file_suffix,
-                                    file_path + file_suffix, expected_size=size, expected_digests=file_digests)
+                                    file_path + file_suffix, size=size, digests=file_digests)
                 assert read_file_content(file_local_path) == file_content
 
             else:
                 with pytest.raises(RuntimeError if file_path_is_safe else ValueError):
                     downloader.download(httpserver.url_for('/location/filename') + file_suffix + '.404',
-                                        file_path + file_suffix, expected_size=size, expected_digests=file_digests)
+                                        file_path + file_suffix, size=size, digests=file_digests)
                 assert not file_local_path.exists()
 
                 if file_path_is_safe:

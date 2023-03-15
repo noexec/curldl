@@ -46,7 +46,7 @@ class Downloader:
         pycurl.E_ABORTED_BY_CALLBACK,
     }
 
-    def __init__(self, basedir: str | os.PathLike[str], progress: bool = False, verbose: bool = False) -> None:
+    def __init__(self, basedir: str | os.PathLike[str], *, progress: bool = False, verbose: bool = False) -> None:
         """Initialize a PycURL-based downloader with a single pycurl.Curl instance
         that is reused and reconfigured for each download. The resulting downloader
         object should be therefore not share between several threads."""
@@ -55,7 +55,7 @@ class Downloader:
         self._verbose = verbose
         self._unconfigured_curl = pycurl.Curl()
 
-    def _get_configured_curl(self, url: str, path: str,
+    def _get_configured_curl(self, url: str, path: str, *,
                              timestamp: int | float | None = None) -> tuple[pycurl.Curl, int]:
         curl = self._unconfigured_curl
         curl.reset()
@@ -112,21 +112,21 @@ class Downloader:
         debug_msg = debug_msg[:-1].decode('ascii', 'replace')
         log.debug('Curl: [%s] %s', debug_type, debug_msg)
 
-    def download(self, url: str, rel_path: str, expected_size: int | None = None,
-                 expected_digests: dict[str, str] | None = None) -> None:
+    def download(self, url: str, rel_path: str, *, size: int | None = None,
+                 digests: dict[str, str] | None = None) -> None:
         """Download a URL to basedir-relative path and verify its expected size and digests.
         See Utilities.verify_size_and_digests() for format of expected digests."""
         path, path_partial = [self._prepare_full_path(rel_path + rel_ext) for rel_ext in ('', '.part')]
 
-        if FileSystem.get_file_size(path, default=-1) == expected_size:
-            log.debug('Skipping update of %s since it has the expected size %s bytes', path, f'{expected_size:,}')
+        if FileSystem.get_file_size(path, default=-1) == size:
+            log.debug('Skipping update of %s since it has the expected size %s bytes', path, f'{size:,}')
             return
 
         if_modified_since_timestamp = None
-        if os.path.exists(path) and expected_size is None:
+        if os.path.exists(path) and size is None:
             if_modified_since_timestamp = os.path.getmtime(path)
 
-        if (expected_size is None and not expected_digests and os.path.exists(path_partial)
+        if (size is None and not digests and os.path.exists(path_partial)
                 and os.path.getsize(path_partial) < self.MIN_ALWAYS_KEEP_PARTIAL_DOWNLOAD_BYTES):
             log.info('Removing existing partial download of %s since no size/digest to compare to', path)
             os.remove(path_partial)
@@ -145,9 +145,8 @@ class Downloader:
             return
 
         try:
-            FileSystem.verify_size_and_digests(path_partial,
-                                               expected_size=expected_size, expected_digests=expected_digests)
-            log.debug('Partial download of %s passed verification (%s / %s)', path, expected_size, expected_digests)
+            FileSystem.verify_size_and_digests(path_partial, size=size, digests=digests)
+            log.debug('Partial download of %s passed verification (%s / %s)', path, size, digests)
         except ValueError:
             log.info('Removing partial download of %s due to size/digest mismatch', path)
             os.remove(path_partial)
@@ -156,7 +155,7 @@ class Downloader:
         log.debug('Renaming %s to %s', path_partial, path)
         os.rename(path_partial, path)
 
-    def _download_partial(self, url: str, path: str, timestamp: int | float | None = None) -> None:
+    def _download_partial(self, url: str, path: str, *, timestamp: int | float | None = None) -> None:
         """Start or resume a partial download of a URL to absolute path.
 
         If timestamp of an already downloaded file is provided, remove the partial file
@@ -203,7 +202,7 @@ class Downloader:
             response_descr = http.client.responses.get(response_code, 'Unknown Status')
         return response_code, response_descr
 
-    def _rollback_file(self, path: str, initial_size: int, force_remove: bool = False) -> None:
+    def _rollback_file(self, path: str, initial_size: int, *, force_remove: bool = False) -> None:
         """Truncate file at path to its original size. If the post-truncation file size
         is below a threshold, it is removed. This is also done if force_remove is True."""
         current_size = os.path.getsize(path)
