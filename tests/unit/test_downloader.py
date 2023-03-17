@@ -28,11 +28,9 @@ BASE_TIMESTAMP = 1678901234
 
 class DisconnectingHTTPServer(http.server.BaseHTTPRequestHandler):
     """HTTP Server that closes the connection after reading the request"""
-    def do_get(self) -> None:
+    def do_GET(self) -> None:   # pylint: disable=invalid-name
         """Close connection without processing"""
         self.connection.shutdown(socket.SHUT_RDWR)
-
-    do_GET = do_get  # silence pylint invalid-name warning
 
 
 def compute_hex_digest(data: bytes, algo: str) -> str:

@@ -195,6 +195,8 @@ class Downloader:
                 if curl_success:
                     raise RuntimeError(f'{response_descr} [{response_code}] when downloading {path},'
                                        f' aborting without retries')
+                # fix branch code coverage for conditional above
+                pass    # pylint: disable=unnecessary-pass
 
     def _prepare_full_path(self, rel_path: str) -> str:
         """Verify that basedir-relative path is safe and create the required directories"""
