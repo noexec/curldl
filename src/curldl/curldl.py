@@ -217,9 +217,7 @@ class Downloader:
         """Truncate file at path to its original size. If the post-truncation file size
         is below a threshold, it is removed. This is also done if force_remove is True."""
         current_size = os.path.getsize(path)
-        if current_size < initial_size:
-            os.remove(path)
-            raise ValueError(f'{path} has size {current_size:,} that is less than initial {initial_size,:}')
+        assert current_size >= initial_size
 
         if initial_size < self._min_part_bytes or force_remove:
             log.debug('Removing %s instead of truncating back to %s bytes', path, f'{initial_size:,}')
