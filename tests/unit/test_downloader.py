@@ -171,7 +171,7 @@ def test_redirected_download(tmp_path: pathlib.Path, httpserver: HTTPServer) -> 
 def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: LogCaptureFixture,
                           size: int, part_size: int, min_part_bytes: int, verify_file: bool,
                           timestamp: int | None) -> None:
-    """Download on a partial download that succeed after a rollback, possibly with unchanged timestamp"""
+    """Download a partial download that succeeds after a rollback, possibly with unchanged timestamp"""
     caplog.set_level(logging.DEBUG)
 
     file_data = os.urandom(size)
@@ -181,6 +181,7 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
     downloader = curldl.Downloader(basedir=tmp_path, verbose=True, min_part_bytes=min_part_bytes, retry_attempts=0)
 
     def download_and_possibly_verify() -> None:
+        """Download file and verify its size/digest according to test parameter"""
         downloader.download(httpserver.url_for('/abc'), 'file.bin', size=(size if verify_file else None),
                             digests=({'sha1': compute_hex_digest(file_data, 'sha1')} if verify_file else None))
 
@@ -221,3 +222,49 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
     if part_size != size != 0:
         assert os.stat(tmp_path / 'file.bin').st_mtime == (timestamp or BASE_TIMESTAMP + 2 * 10)
     assert read_file_content(tmp_path / 'file.bin') == file_data
+
+
+@pytest.mark.parametrize('size', [0, 1024])
+@pytest.mark.parametrize('verify_file', [False, True])
+@pytest.mark.parametrize('timestamp1', [1234567890, 1678901234])
+@pytest.mark.parametrize('timestamp2', [1234567890, 1678901234, 1456789012.6789])
+def test_repeated_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: LogCaptureFixture,
+                           size: int, verify_file: bool, timestamp1: int, timestamp2: int | float) -> None:
+    """One download after another, with a possibly unmodified source file"""
+    caplog.set_level(logging.DEBUG)
+    downloader = curldl.Downloader(basedir=tmp_path, verbose=True)
+    data1, data2 = os.urandom(size), os.urandom(size)
+
+    def make_response_handler(timestamp: int | float, data: bytes) -> Callable[[Request], Response]:
+        """Create werkzeug handler for If-Modified-Since request header"""
+        def response_handler_cb(request: Request) -> Response:
+            """Returns 304 Not Modified response if timestamp is not newer than one in request"""
+            if request.if_modified_since and util.Time.timestamp_to_dt(timestamp) <= request.if_modified_since:
+                return Response('Should not update downloaded file', status=http.client.NOT_MODIFIED)
+            response = Response(data)
+            response.last_modified = util.Time.timestamp_to_dt(timestamp)
+            return response
+
+        return response_handler_cb
+
+    def download_and_possibly_verify(data: bytes) -> None:
+        """Download file and verify its size/digest according to test parameter and expected data"""
+        downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=(size if verify_file else None),
+                            digests=({'sha1': compute_hex_digest(data, 'sha1')} if verify_file else None))
+
+    httpserver.expect_ordered_request('/file.txt').respond_with_handler(make_response_handler(timestamp1, data1))
+    httpserver.expect_ordered_request('/file.txt').respond_with_handler(make_response_handler(timestamp2, data2))
+
+    download_and_possibly_verify(data1)
+    httpserver.check()
+    assert os.stat(tmp_path / 'file.txt').st_mtime == timestamp1
+    assert read_file_content(tmp_path / 'file.txt') == data1
+
+    download_and_possibly_verify(data2)
+    httpserver.check()
+    if timestamp1 < timestamp2 and not verify_file:
+        assert os.stat(tmp_path / 'file.txt').st_mtime == int(timestamp2)
+        assert read_file_content(tmp_path / 'file.txt') == data2
+    else:
+        assert os.stat(tmp_path / 'file.txt').st_mtime == timestamp1
+        assert read_file_content(tmp_path / 'file.txt') == data1
