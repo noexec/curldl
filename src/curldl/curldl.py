@@ -18,8 +18,6 @@ log = logging.getLogger(__name__)
 
 class Downloader:
     """Interface for downloading functionality of PycURL"""
-    USER_AGENT = 'curl/7.61.1'  # 2018-09-05
-
     ACCEPTED_HTTP_STATUS = {
         http.HTTPStatus.OK,
         http.HTTPStatus.PARTIAL_CONTENT,
@@ -38,6 +36,7 @@ class Downloader:
     }
 
     def __init__(self, basedir: str | os.PathLike[str], *, progress: bool = False, verbose: bool = False,
+                 user_agent: str = 'curl/7.61.1',  # 2018-09-05
                  retry_attempts: int = 3, retry_wait_sec: int | float = 2,
                  timeout_sec: int | float = 120, max_redirects: int = 5, progress_sec: int | float = 2,
                  min_part_bytes: int = 64 * 1024, min_always_keep_part_bytes: int = 64 * 1024 ** 2) -> None:
@@ -48,6 +47,7 @@ class Downloader:
 
         self._progress = progress
         self._verbose = verbose
+        self._user_agent = user_agent
 
         self._retry_attempts = retry_attempts
         self._retry_wait_sec = retry_wait_sec
@@ -67,7 +67,7 @@ class Downloader:
         curl.reset()
 
         curl.setopt(pycurl.URL, url)
-        curl.setopt(pycurl.USERAGENT, self.USER_AGENT)
+        curl.setopt(pycurl.USERAGENT, self._user_agent)
 
         curl.setopt(pycurl.OPT_FILETIME, True)
         curl.setopt(pycurl.FOLLOWLOCATION, True)

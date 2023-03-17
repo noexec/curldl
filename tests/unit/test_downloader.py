@@ -230,15 +230,16 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
 @pytest.mark.parametrize('timestamp2', [1234567890, 1678901234, 1456789012.6789])
 def test_repeated_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: LogCaptureFixture,
                            size: int, verify_file: bool, timestamp1: int, timestamp2: int | float) -> None:
-    """One download after another, with a possibly unmodified source file"""
+    """One download after another, with a possibly unmodified source file; also verifies User-Agent header"""
     caplog.set_level(logging.DEBUG)
-    downloader = curldl.Downloader(basedir=tmp_path, verbose=True)
+    downloader = curldl.Downloader(basedir=tmp_path, verbose=True, user_agent='curl/0.0.0')
     data1, data2 = os.urandom(size), os.urandom(size)
 
     def make_response_handler(timestamp: int | float, data: bytes) -> Callable[[Request], Response]:
         """Create werkzeug handler for If-Modified-Since request header"""
         def response_handler_cb(request: Request) -> Response:
             """Returns 304 Not Modified response if timestamp is not newer than one in request"""
+            assert request.user_agent.string == 'curl/0.0.0'
             if request.if_modified_since and util.Time.timestamp_to_dt(timestamp) <= request.if_modified_since:
                 return Response('Should not update downloaded file', status=http.client.NOT_MODIFIED)
             response = Response(data)
