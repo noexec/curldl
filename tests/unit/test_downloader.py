@@ -4,9 +4,13 @@ from __future__ import annotations
 import hashlib
 import http
 import http.client
+import http.server
 import logging
 import os
 import pathlib
+import socket
+import socketserver
+import threading
 from typing import Callable
 
 import pycurl
@@ -20,6 +24,15 @@ import curldl
 from curldl import util
 
 BASE_TIMESTAMP = 1678901234
+
+
+class DisconnectingHTTPServer(http.server.BaseHTTPRequestHandler):
+    """HTTP Server that closes the connection after reading the request"""
+    def do_get(self) -> None:
+        """Close connection without processing"""
+        self.connection.shutdown(socket.SHUT_RDWR)
+
+    do_GET = do_get  # silence pylint invalid-name warning
 
 
 def compute_hex_digest(data: bytes, algo: str) -> str:
@@ -195,8 +208,9 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
 
     # Request #2 on partial file: generally fails with 503, which causes pycurl.error due to resume failure
     # Rolls back to existing partial file if verification data is present
-    with pytest.raises(pycurl.error if verify_file and part_size > 0 else RuntimeError):
+    with pytest.raises(pycurl.error if verify_file and part_size > 0 else RuntimeError) as ex_info:
         download_and_possibly_verify()
+    assert isinstance(ex_info.value, RuntimeError) or ex_info.value.args[0] == pycurl.E_HTTP_RANGE_ERROR
     httpserver.check()
 
     assert ((tmp_path / 'file.bin.part').exists() ==
@@ -245,7 +259,6 @@ def test_repeated_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplo
             response = Response(data)
             response.last_modified = util.Time.timestamp_to_dt(timestamp)
             return response
-
         return response_handler_cb
 
     def download_and_possibly_verify(data: bytes) -> None:
@@ -269,3 +282,20 @@ def test_repeated_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplo
     else:
         assert os.stat(tmp_path / 'file.txt').st_mtime == timestamp1
         assert read_file_content(tmp_path / 'file.txt') == data1
+
+
+def test_aborted_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> None:
+    """An aborted server connection that did not send HTTP status"""
+    caplog.set_level(logging.DEBUG)
+    downloader = curldl.Downloader(basedir=tmp_path, verbose=True, retry_attempts=0)
+
+    with socketserver.TCPServer(('localhost', 0), DisconnectingHTTPServer) as httpd:
+        hostname, port = httpd.server_address
+        assert isinstance(hostname, str)
+        url = f'http://{hostname}:{port}/path'
+
+        threading.Thread(target=httpd.handle_request).start()
+        with pytest.raises(pycurl.error) as ex_info:
+            downloader.download(url, 'some-file.txt')
+
+        assert ex_info.value.args[0] == pycurl.E_GOT_NOTHING
