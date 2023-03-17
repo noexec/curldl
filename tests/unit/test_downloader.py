@@ -226,8 +226,8 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
 
 @pytest.mark.parametrize('size', [0, 1024])
 @pytest.mark.parametrize('verify_file', [False, True])
-@pytest.mark.parametrize('timestamp1', [1234567890, 1678901234])
-@pytest.mark.parametrize('timestamp2', [1234567890, 1678901234, 1456789012.6789])
+@pytest.mark.parametrize('timestamp1', [0, 1234567890, 1678901234])
+@pytest.mark.parametrize('timestamp2', [0, 1234567890, 1678901234, 1456789012.6789])
 def test_repeated_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: LogCaptureFixture,
                            size: int, verify_file: bool, timestamp1: int, timestamp2: int | float) -> None:
     """One download after another, with a possibly unmodified source file; also verifies User-Agent header"""

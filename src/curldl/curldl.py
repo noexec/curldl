@@ -63,6 +63,8 @@ class Downloader:
 
     def _get_configured_curl(self, url: str, path: str, *,
                              timestamp: int | float | None = None) -> tuple[pycurl.Curl, int]:
+        """Reconfigure pycurl.Curl instance for requested download and return the instance.
+        Methods should not work with unconfigured instance directly, only with this one."""
         curl = self._unconfigured_curl
         curl.reset()
 
@@ -85,8 +87,9 @@ class Downloader:
         else:
             log.info('Downloading %s to %s', url, path)
 
-        if timestamp:
-            curl.setopt(pycurl.HTTPHEADER, [f'If-Modified-Since: {Time.timestamp_to_http_date(timestamp)}'])
+        if timestamp is not None:
+            curl.setopt(pycurl.TIMEVALUE, round(timestamp))
+            curl.setopt(pycurl.TIMECONDITION, pycurl.TIMECONDITION_IFMODSINCE)
             log.debug('Will update %s if modified since %s', path, Time.timestamp_to_dt(timestamp))
 
         return curl, initial_size
@@ -183,7 +186,7 @@ class Downloader:
                          f' ({response_code} {response_descr})'
                          f' [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
                 FileSystem.set_file_timestamp(path, curl.getinfo(pycurl.INFO_FILETIME))
-            elif response_code == http.HTTPStatus.NOT_MODIFIED:
+            elif curl.getinfo(pycurl.CONDITION_UNMET):
                 log.info('Discarding %s because it is not more recent', path)
                 self._rollback_file(path, initial_size, force_remove=True)
             else:
