@@ -7,13 +7,19 @@ import http.client
 import logging
 import os
 import pathlib
+from typing import Callable
 
+import pycurl
 import pytest
+import werkzeug.exceptions
 from _pytest.logging import LogCaptureFixture
 from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
 import curldl
+from curldl import util
+
+BASE_TIMESTAMP = 1678901234
 
 
 def compute_hex_digest(data: bytes, algo: str) -> str:
@@ -29,6 +35,29 @@ def read_file_content(file_path: pathlib.Path) -> bytes:
     assert file_path.is_file()
     with open(file_path, 'rb') as file:
         return file.read()
+
+
+def make_range_response_handler(path: str, data: bytes, *, statuses: list[bool] | None = None,
+                                timestamp: int | float | None = None) -> Callable[[Request], Response]:
+    """Create werkzeug handler that handles regular (200) or byte range (206/416) requests.
+    If timestamp is not specified, different timestamp is sent for each request"""
+    status_idx = -1
+
+    def range_response_handler_cb(request: Request) -> Response:
+        """Respond with a Content-Range if requested"""
+        assert request.path == path
+
+        nonlocal status_idx
+        status_idx += 1
+        if statuses and not statuses[status_idx]:
+            return Response('Should cause RuntimeException', status=http.client.SERVICE_UNAVAILABLE)
+
+        response = Response(data, mimetype='application/octet-stream')
+        sent_timestamp = timestamp if timestamp is not None else BASE_TIMESTAMP + status_idx * 10
+        response.last_modified = util.Time.timestamp_to_dt(sent_timestamp)
+        return response.make_conditional(request, accept_ranges=True, complete_length=len(data))
+
+    return range_response_handler_cb
 
 
 @pytest.mark.parametrize('size', [None, 100])
@@ -98,7 +127,7 @@ def test_successful_download_after_failure(tmp_path: pathlib.Path, httpserver: H
         nonlocal retries_left
         retries_left -= 1
         if retries_left != 0:
-            return Response("Redirect (fails PycURL)", status=http.HTTPStatus.TEMPORARY_REDIRECT,
+            return Response('Redirect (fails PycURL)', status=http.HTTPStatus.TEMPORARY_REDIRECT,
                             headers={'Location': httpserver.url_for('/elsewhere')})
         return Response(b'xxx')
 
@@ -117,7 +146,7 @@ def test_redirected_download(tmp_path: pathlib.Path, httpserver: HTTPServer) -> 
     def redirect_response_handler_cb(request: Request) -> Response:
         """Redirect several times, then respond"""
         if request.path != '/file.txt' + ('+' * max_redirects):
-            return Response(http.client.responses[status := http.HTTPStatus.TEMPORARY_REDIRECT], status=status,
+            return Response('Redirect (PycURL should follow)', status=http.HTTPStatus.TEMPORARY_REDIRECT,
                             headers=[('Location', httpserver.url_for(request.path + '+'))])
         return Response(b'x' * 4096, mimetype='application/octet-stream',
                         headers={'Last-Modified': 'Fri, 13 Feb 2009 23:31:30 GMT'})
@@ -133,3 +162,62 @@ def test_redirected_download(tmp_path: pathlib.Path, httpserver: HTTPServer) -> 
     file_stat = os.stat(tmp_path / 'file.txt')
     assert file_stat.st_mtime == file_stat.st_atime == 1234567890
     assert read_file_content(tmp_path / 'file.txt') == b'x' * 4096
+
+
+@pytest.mark.parametrize('size, part_size', [(100, 50), (101, 0), (51, 51), (0, 0), (150, 200)])
+@pytest.mark.parametrize('min_part_bytes', [0, 50, 51])
+@pytest.mark.parametrize('verify_file', [False, True])
+@pytest.mark.parametrize('timestamp', [1234567890, None])
+def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: LogCaptureFixture,
+                          size: int, part_size: int, min_part_bytes: int, verify_file: bool,
+                          timestamp: int | None) -> None:
+    """Download on a partial download that succeed after a rollback, possibly with unchanged timestamp"""
+    caplog.set_level(logging.DEBUG)
+
+    file_data = os.urandom(size)
+    httpserver.expect_request('/abc', method='GET').respond_with_handler(
+        make_range_response_handler('/abc', file_data, timestamp=timestamp, statuses=[True, False, True]))
+
+    downloader = curldl.Downloader(basedir=tmp_path, verbose=True, min_part_bytes=min_part_bytes, retry_attempts=0)
+
+    def download_and_possibly_verify() -> None:
+        downloader.download(httpserver.url_for('/abc'), 'file.bin', size=(size if verify_file else None),
+                            digests=({'sha1': compute_hex_digest(file_data, 'sha1')} if verify_file else None))
+
+    # Request #1: should succeed
+    download_and_possibly_verify()
+    httpserver.check()
+
+    assert read_file_content(tmp_path / 'file.bin') == file_data
+    os.rename(tmp_path / 'file.bin', tmp_path / 'file.bin.part')
+    os.truncate(tmp_path / 'file.bin.part', part_size)
+
+    # Request #2 on partial file: generally fails with 503, which causes pycurl.error due to resume failure
+    # Rolls back to existing partial file if verification data is present
+    with pytest.raises(pycurl.error if verify_file and part_size > 0 else RuntimeError):
+        download_and_possibly_verify()
+    httpserver.check()
+
+    assert ((tmp_path / 'file.bin.part').exists() ==
+            (min_part_bytes <= part_size and (verify_file or min_part_bytes == 0 or min_part_bytes < part_size < size)))
+    if verify_file and min_part_bytes <= part_size <= size:
+        assert (tmp_path / 'file.bin.part').stat().st_size == part_size
+    assert not (tmp_path / 'file.bin').exists()
+
+    # Request #3: should succeed unless weird conditions
+    if verify_file and part_size > size:
+        with pytest.raises(ValueError):
+            download_and_possibly_verify()
+        httpserver.check_assertions()
+        return
+
+    download_and_possibly_verify()
+    if verify_file and part_size >= size > 0:
+        assert isinstance(httpserver.handler_errors[0], werkzeug.exceptions.RequestedRangeNotSatisfiable)
+        httpserver.clear_handler_errors()
+    httpserver.check()
+
+    # NOTE: race condition if .part has the target file size, since 416 has no Last-Modified header
+    if part_size != size != 0:
+        assert os.stat(tmp_path / 'file.bin').st_mtime == (timestamp or BASE_TIMESTAMP + 2 * 10)
+    assert read_file_content(tmp_path / 'file.bin') == file_data

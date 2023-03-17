@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import pathlib
 
 import pytest
@@ -27,7 +28,7 @@ def test_file_downloads(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: 
     caplog.set_level(log_level)
     downloader = curldl.Downloader(basedir=tmp_path/'base', progress=progress, verbose=verbose)
 
-    file_content = b''.join(chr(c % 256).encode('latin1') for c in range(200 if size is None else size))
+    file_content = os.urandom(200 if size is None else size)
     file_digests = {algo: compute_hex_digest(file_content, algo) for algo in algos} if algos else None
     try:
         util.FileSystem.verify_rel_path_is_safe(tmp_path / 'base', file_path)

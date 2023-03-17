@@ -217,7 +217,7 @@ class Downloader:
             raise ValueError(f'{path} has size {current_size:,} that is less than initial {initial_size,:}')
 
         if initial_size < self._min_part_bytes or force_remove:
-            log.debug('Removing %s', path)
+            log.debug('Removing %s instead of truncating back to %s bytes', path, f'{initial_size:,}')
             os.remove(path)
         elif initial_size < current_size:
             log.warning('Truncating %s back to %s bytes', path, f'{initial_size:,}')
