@@ -3,7 +3,7 @@ import inspect
 import logging
 import os.path
 import pathlib
-import subprocess
+import subprocess   # nosec
 import sys
 from importlib import metadata
 
@@ -36,8 +36,8 @@ def patch_logger_config(mocker: MockerFixture, expected_log_level: str) -> None:
 def test_run_cli_module(arguments: str, should_succeed: bool) -> None:
     """Verify that running the module via __main__.py works, test success and failure"""
     package_base_path = pathlib.Path(inspect.getfile(curldl)).parent / os.path.pardir
-    result = subprocess.run(f'python -m {PACKAGE_NAME} {arguments}',
-                            check=False, shell=True, text=True, encoding='ascii', capture_output=True,
+    result = subprocess.run(f'python -m {PACKAGE_NAME} {arguments}'.split(),    # nosec
+                            check=False, text=True, encoding='ascii', capture_output=True,
                             env=dict(os.environ, PYTHONPATH=str(package_base_path)))
     assert (result.returncode == 0) == should_succeed
     if not should_succeed:

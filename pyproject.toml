@@ -42,6 +42,7 @@ environment = [
 ]
 
 test = [
+    "bandit[toml]",         # security issues checks
     "pytest",               # pytest testing framework
     "pytest-cov",           # code coverage (--cov)
     "pytest-httpserver",    # HTTP server fixture
@@ -62,11 +63,14 @@ repository = "https://github.com/noexec/curldl"
 [project.scripts]
 curldl = "curldl.cli:main"
 
+
 [build-system]
 requires = ["setuptools", "wheel"]
 
+
 [tool.setuptools.package-data]
 "curldl" = ["py.typed"]     # PIP 561
+
 
 [tool.pytest.ini_options]
 addopts = "--mypy --pylint --cov --cov-report=term --cov-report=html"
@@ -80,6 +84,7 @@ filterwarnings = [
     "ignore::DeprecationWarning:pytest_pylint.pylint_util"      # pytest-pylint 0.19.0
 ]
 
+
 [tool.pylint.main]
 py-version = "3.8"
 
@@ -92,6 +97,7 @@ min-public-methods = 1
 max-args = 10
 max-attributes = 15
 max-locals = 20
+
 
 [tool.mypy]
 warn_unused_configs = true
@@ -110,6 +116,7 @@ disallow_any_generics = true
 disallow_subclassing_any = true
 warn_return_any = true
 
+
 [tool.coverage.run]
 data_file = "build/tests/coverage.sqlite"
 omit = ["/etc/*"]
@@ -126,3 +133,8 @@ skip_covered = true
 directory = "build/tests/htmlcov"
 show_contexts = true
 skip_covered = false
+
+
+[tool.bandit]
+exclude_dirs = ["venv", "build"]
+skips = ["B101"]
