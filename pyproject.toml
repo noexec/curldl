@@ -11,41 +11,51 @@ license = {text = "LGPL-3.0-or-later"}
 
 authors = [{name = "Michael Orlov", email = "orlovm@noexec.org"}]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Operating System :: OS Independent",
     "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Development Status :: 4 - Beta"
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: System :: Networking"
 ]
 
 requires-python = ">=3.8"
 dependencies = [
-    "pycurl",
-    "tenacity",
-    "tqdm"
+    "pycurl",               # PycURL wrapper for cURL library
+    "tenacity",             # retry policies
+    "toml",                 # reading project.version from this file
+    "tqdm"                  # console progress bar
 ]
 
 [project.optional-dependencies]
 environment = [
-    "ipython",
-    "pipdeptree",
-    "pip-autoremove"
+    "ipython",              # interactive Python environment
+    "pipdeptree",           # show packages dependency tree
+    "pip-autoremove"        # remove unused package dependencies
 ]
 
 test = [
-    "pytest",
-    "pytest-cov",
+    "pytest",               # pytest testing framework
+    "pytest-cov",           # code coverage (--cov)
     "pytest-datadir",
-    "pytest-localserver",
-    "pytest-mypy",
-    "pytest-openfiles",
-    "pytest-pylint",
+    "pytest-httpserver",    # HTTP server fixture
+    "pytest-mock",          # mocker fixtures
+    "pytest-mypy",          # type hinting verifier (--mypy)
+    "pytest-pylint",        # linter (--pylint)
     "pytest-regressions",
-    "pytest-repeat",
+    "pytest-repeat",        # repeating tests (@pytest.mark.repeat)
     "pytest-subtests",
-    "pytest-sugar",
+    "pytest-sugar",         # look-and-feel for pytest progress
     "pytest-timeout",
-    "toml",
-    "types-pycurl",
-    "types-toml"
+    "pytest-xdist[psutil]", # distributed tests (-n logical --no-pylint)
+    "types-pycurl",         # pycurl type hints for mypy
+    "types-toml"            # toml type hints for mypy
 ]
 
 [project.urls]
@@ -57,13 +67,19 @@ curldl = "curldl.cli:main"
 [build-system]
 requires = ["setuptools", "wheel"]
 
+[tool.setuptools.package-data]
+"curldl" = ["py.typed"]     # PIP 561
+
 [tool.pytest.ini_options]
+addopts = "--mypy --pylint --cov --cov-report=term --cov-report=html"
 pythonpath = ["src"]
 testpaths = ["tests", "src"]
+cache_dir = "build/tests/pytest_cache"
 
 filterwarnings = [
-    "ignore:::pytest_pylint.plugin",
-    "ignore:::pytest_pylint.pylint_util"
+    "default",
+    "ignore::DeprecationWarning:pytest_pylint.plugin",          # pytest-pylint 0.19.0
+    "ignore::DeprecationWarning:pytest_pylint.pylint_util"      # pytest-pylint 0.19.0
 ]
 
 [tool.pylint.main]
@@ -75,14 +91,17 @@ max-line-length = 120
 
 [tool.pylint.design]
 min-public-methods = 1
+max-args = 10
+max-attributes = 15
+max-locals = 20
 
 [tool.mypy]
 warn_unused_configs = true
+cache_dir = "build/tests/mypy_cache"
 
 allow_redefinition = true
 warn_unreachable = true
 
-disallow_untyped_calls = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true
@@ -92,3 +111,20 @@ disallow_any_explicit = true
 disallow_any_generics = true
 disallow_subclassing_any = true
 warn_return_any = true
+
+[tool.coverage.run]
+data_file = "build/tests/coverage.sqlite"
+omit = ["/etc/*"]
+
+branch = true
+dynamic_context = "test_function"
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = true
+
+[tool.coverage.html]
+directory = "build/tests/htmlcov"
+show_contexts = true
+skip_covered = false

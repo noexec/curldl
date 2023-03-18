@@ -6,6 +6,6 @@
 __pycache__/
 *.pyc
 
-# Build files
+# Build and test output files
 /build/
 /src/*.egg-info/
