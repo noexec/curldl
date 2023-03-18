@@ -1,4 +1,4 @@
-# PEP 518, 621, 639 (draft)
+# PEP 518, 621
 
 [project]
 name = "curldl"
@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: File Transfer Protocol (FTP)",
     "Topic :: System :: Networking"
 ]
 
@@ -29,7 +30,6 @@ requires-python = ">=3.8"
 dependencies = [
     "pycurl",               # PycURL wrapper for cURL library
     "tenacity",             # retry policies
-    "toml",                 # reading project.version from this file
     "tqdm"                  # console progress bar
 ]
 
@@ -37,25 +37,23 @@ dependencies = [
 environment = [
     "ipython",              # interactive Python environment
     "pipdeptree",           # show packages dependency tree
-    "pip-autoremove"        # remove unused package dependencies
+    "pip-autoremove",       # remove unused package dependencies
+    "pip-review"            # upgrade outdated packages
 ]
 
 test = [
     "pytest",               # pytest testing framework
     "pytest-cov",           # code coverage (--cov)
-    "pytest-datadir",
     "pytest-httpserver",    # HTTP server fixture
-    "pytest-mock",          # mocker fixtures
+    "pytest-mock",          # mocker fixtures for monkey patching
     "pytest-mypy",          # type hinting verifier (--mypy)
-    "pytest-pylint",        # linter (--pylint)
-    "pytest-regressions",
+    "pytest-pylint",        # static code analysis (--pylint)
     "pytest-repeat",        # repeating tests (@pytest.mark.repeat)
-    "pytest-subtests",
     "pytest-sugar",         # look-and-feel for pytest progress
-    "pytest-timeout",
     "pytest-xdist[psutil]", # distributed tests (-n logical --no-pylint)
-    "types-pycurl",         # pycurl type hints for mypy
-    "types-toml"            # toml type hints for mypy
+    "toml",                 # reading project.version from this file
+    "types-pycurl",         # external type annotations: pycurl
+    "types-toml"            # external type annotations: toml
 ]
 
 [project.urls]
