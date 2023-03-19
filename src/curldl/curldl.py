@@ -106,9 +106,8 @@ class Downloader:
         """Constructs a callback for XFERINFOFUNCTION"""
         def curl_progress_cb(download_total: int, downloaded: int, upload_total: int, uploaded: int) -> None:
             """Progress callback for XFERINFOFUNCTION, only called if NOPROGRESS=0"""
-            if download_total == 0:
-                return
-            progress_bar.total = download_total + progress_bar.initial
+            if download_total != 0:
+                progress_bar.total = download_total + progress_bar.initial
             progress_bar.update(downloaded + progress_bar.initial - progress_bar.n)
         return curl_progress_cb
 
