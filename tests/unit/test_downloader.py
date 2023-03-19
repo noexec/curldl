@@ -85,7 +85,7 @@ def test_successful_download(tmp_path: pathlib.Path, httpserver: HTTPServer, cap
     file_data = b'x' * 100
     httpserver.expect_oneshot_request('/file.txt', method='GET').respond_with_data(file_data)
 
-    downloader = curldl.Downloader(basedir=tmp_path, progress=progress, verbose=verbose, progress_sec=0)
+    downloader = curldl.Downloader(basedir=tmp_path, progress=progress, verbose=verbose)
     downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=size, digests=digests)
     httpserver.check()
     assert read_file_content(tmp_path / 'file.txt') == file_data
