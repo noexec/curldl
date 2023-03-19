@@ -10,6 +10,7 @@ import os
 import pathlib
 import socket
 import socketserver
+import sys
 import threading
 from typing import Callable
 
@@ -18,6 +19,7 @@ import pytest
 import werkzeug.exceptions
 from _pytest.logging import LogCaptureFixture
 from pytest_httpserver import HTTPServer
+from pytest_mock import MockerFixture
 from werkzeug import Request, Response
 
 import curldl
@@ -74,13 +76,16 @@ def make_range_response_handler(path: str, data: bytes, *, statuses: list[bool] 
 @pytest.mark.parametrize('size', [None, 100])
 @pytest.mark.parametrize('digests', [None, {'sha1': '50E483690EC481F4AF7F6fb524b2b99eb1716565'}])
 @pytest.mark.parametrize('progress', [False, True])
+@pytest.mark.parametrize('fake_tty', [False, True])
 @pytest.mark.parametrize('verbose', [False, True])
 @pytest.mark.parametrize('log_level', [logging.WARNING, logging.INFO, logging.DEBUG])
 def test_successful_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: LogCaptureFixture,
-                             size: int | None, digests: dict[str, str] | None,
-                             progress: bool, verbose: bool, log_level: int) -> None:
+                             mocker: MockerFixture, size: int | None, digests: dict[str, str] | None,
+                             progress: bool, fake_tty: bool, verbose: bool, log_level: int) -> None:
     """One-shot successful download, exercising all possible parameters"""
     caplog.set_level(log_level)
+    if fake_tty:
+        mocker.patch.object(sys.stderr, 'isatty', lambda: True)
 
     file_data = b'x' * 100
     httpserver.expect_oneshot_request('/file.txt', method='GET').respond_with_data(file_data)

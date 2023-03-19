@@ -95,7 +95,7 @@ class Downloader:
         """Complete pycurl.Curl configuration and start downloading"""
         curl.setopt(pycurl.WRITEDATA, write_stream)
 
-        # disable is already True/False after tty detection
+        # disable is already finalized after tty detection
         if not progress_bar.disable:
             curl.setopt(pycurl.XFERINFOFUNCTION, self._get_curl_progress_callback(progress_bar))
             curl.setopt(pycurl.NOPROGRESS, False)
