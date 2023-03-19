@@ -2,6 +2,9 @@
 /.idea/
 /.vscode/
 
+# Python environment
+/venv/
+
 # Python cache
 __pycache__/
 *.pyc

@@ -1,4 +1,4 @@
-# PEP 518, 621, 639 (draft)
+# PEP 518, 621
 
 [project]
 name = "curldl"
@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: File Transfer Protocol (FTP)",
     "Topic :: System :: Networking"
 ]
 
@@ -29,7 +30,6 @@ requires-python = ">=3.8"
 dependencies = [
     "pycurl",               # PycURL wrapper for cURL library
     "tenacity",             # retry policies
-    "toml",                 # reading project.version from this file
     "tqdm"                  # console progress bar
 ]
 
@@ -37,25 +37,24 @@ dependencies = [
 environment = [
     "ipython",              # interactive Python environment
     "pipdeptree",           # show packages dependency tree
-    "pip-autoremove"        # remove unused package dependencies
+    "pip-autoremove",       # remove unused package dependencies
+    "pip-review"            # upgrade outdated packages
 ]
 
 test = [
+    "bandit[toml]",         # security issues checks
     "pytest",               # pytest testing framework
     "pytest-cov",           # code coverage (--cov)
-    "pytest-datadir",
     "pytest-httpserver",    # HTTP server fixture
-    "pytest-mock",          # mocker fixtures
+    "pytest-mock",          # mocker fixtures for monkey patching
     "pytest-mypy",          # type hinting verifier (--mypy)
-    "pytest-pylint",        # linter (--pylint)
-    "pytest-regressions",
+    "pytest-pylint",        # static code analysis (--pylint)
     "pytest-repeat",        # repeating tests (@pytest.mark.repeat)
-    "pytest-subtests",
     "pytest-sugar",         # look-and-feel for pytest progress
-    "pytest-timeout",
     "pytest-xdist[psutil]", # distributed tests (-n logical --no-pylint)
-    "types-pycurl",         # pycurl type hints for mypy
-    "types-toml"            # toml type hints for mypy
+    "toml",                 # reading project.version from this file
+    "types-pycurl",         # external type annotations: pycurl
+    "types-toml"            # external type annotations: toml
 ]
 
 [project.urls]
@@ -64,14 +63,17 @@ repository = "https://github.com/noexec/curldl"
 [project.scripts]
 curldl = "curldl.cli:main"
 
+
 [build-system]
 requires = ["setuptools", "wheel"]
+
 
 [tool.setuptools.package-data]
 "curldl" = ["py.typed"]     # PIP 561
 
+
 [tool.pytest.ini_options]
-addopts = "--mypy --pylint --cov --cov-report=term --cov-report=html"
+addopts = "--mypy --pylint --pylint-jobs 0 --cov --cov-report=term --cov-report=html"
 pythonpath = ["src"]
 testpaths = ["tests", "src"]
 cache_dir = "build/tests/pytest_cache"
@@ -81,6 +83,7 @@ filterwarnings = [
     "ignore::DeprecationWarning:pytest_pylint.plugin",          # pytest-pylint 0.19.0
     "ignore::DeprecationWarning:pytest_pylint.pylint_util"      # pytest-pylint 0.19.0
 ]
+
 
 [tool.pylint.main]
 py-version = "3.8"
@@ -94,6 +97,7 @@ min-public-methods = 1
 max-args = 10
 max-attributes = 15
 max-locals = 20
+
 
 [tool.mypy]
 warn_unused_configs = true
@@ -112,6 +116,7 @@ disallow_any_generics = true
 disallow_subclassing_any = true
 warn_return_any = true
 
+
 [tool.coverage.run]
 data_file = "build/tests/coverage.sqlite"
 omit = ["/etc/*"]
@@ -128,3 +133,8 @@ skip_covered = true
 directory = "build/tests/htmlcov"
 show_contexts = true
 skip_covered = false
+
+
+[tool.bandit]
+exclude_dirs = ["venv", "build"]
+skips = ["B101"]

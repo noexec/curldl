@@ -6,8 +6,6 @@ import sys
 import urllib.parse
 from importlib import metadata
 
-import toml
-
 import curldl
 from curldl import Downloader
 from curldl.util import Log, Cryptography
@@ -92,6 +90,7 @@ class CommandLine:
         try:
             return metadata.version(__package__)
         except metadata.PackageNotFoundError:
+            import toml     # pylint: disable=import-outside-toplevel
             pyproject = os.path.join(curldl.ROOT_DIR, os.path.pardir, os.path.pardir, 'pyproject.toml')
             return str(toml.load(pyproject)['project']['version'])
 
