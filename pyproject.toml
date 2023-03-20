@@ -54,7 +54,8 @@ test = [
     "pytest-xdist[psutil]", # distributed tests (-n logical --no-pylint)
     "toml",                 # reading project.version from this file
     "types-pycurl",         # external type annotations: pycurl
-    "types-toml"            # external type annotations: toml
+    "types-toml",           # external type annotations: toml
+    "types-tqdm"            # external type annotations: tqdm
 ]
 
 [project.urls]

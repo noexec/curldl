@@ -5,11 +5,11 @@ import http
 import http.client
 import logging
 import os.path
-import timeit
-from typing import Callable
+from typing import Callable, BinaryIO, NoReturn
 
 import pycurl
 import tenacity
+from tqdm import tqdm
 
 from curldl.util import FileSystem, Time
 
@@ -38,7 +38,7 @@ class Downloader:
     def __init__(self, basedir: str | os.PathLike[str], *, progress: bool = False, verbose: bool = False,
                  user_agent: str = 'curl/7.61.1',  # 2018-09-05
                  retry_attempts: int = 3, retry_wait_sec: int | float = 2,
-                 timeout_sec: int | float = 120, max_redirects: int = 5, progress_sec: int | float = 2,
+                 timeout_sec: int | float = 120, max_redirects: int = 5,
                  min_part_bytes: int = 64 * 1024, min_always_keep_part_bytes: int = 64 * 1024 ** 2) -> None:
         """Initialize a PycURL-based downloader with a single pycurl.Curl instance
         that is reused and reconfigured for each download. The resulting downloader
@@ -54,7 +54,6 @@ class Downloader:
 
         self._timeout_sec = timeout_sec
         self._max_redirects = max_redirects
-        self._progress_sec = progress_sec
 
         self._min_part_bytes = min_part_bytes
         self._min_always_keep_part_bytes = min_always_keep_part_bytes
@@ -76,8 +75,6 @@ class Downloader:
         curl.setopt(pycurl.MAXREDIRS, self._max_redirects)
         curl.setopt(pycurl.TIMEOUT, self._timeout_sec)
 
-        curl.setopt(pycurl.NOPROGRESS, not self._progress)
-        curl.setopt(pycurl.XFERINFOFUNCTION, self._get_curl_progress_callback(path))
         curl.setopt(pycurl.VERBOSE, self._verbose)
         curl.setopt(pycurl.DEBUGFUNCTION, self._curl_debug_cb)
 
@@ -94,23 +91,24 @@ class Downloader:
 
         return curl, initial_size
 
-    def _get_curl_progress_callback(self, path: str) -> Callable[[int, int, int, int], None]:
+    def _perform_curl_download(self, curl: pycurl.Curl, write_stream: BinaryIO, progress_bar: tqdm[NoReturn]) -> None:
+        """Complete pycurl.Curl configuration and start downloading"""
+        curl.setopt(pycurl.WRITEDATA, write_stream)
+
+        # disable is already finalized after tty detection
+        if not progress_bar.disable:
+            curl.setopt(pycurl.XFERINFOFUNCTION, self._get_curl_progress_callback(progress_bar))
+            curl.setopt(pycurl.NOPROGRESS, False)
+
+        curl.perform()
+
+    def _get_curl_progress_callback(self, progress_bar: tqdm[NoReturn]) -> Callable[[int, int, int, int], None]:
         """Constructs a callback for XFERINFOFUNCTION"""
-        begin_timestamp = last_timestamp = timeit.default_timer()
-        resume_size = FileSystem.get_file_size(path)
-
         def curl_progress_cb(download_total: int, downloaded: int, upload_total: int, uploaded: int) -> None:
-            """Callback for XFERINFOFUNCTION"""
-            if download_total == downloaded:
-                return
-            progress = 100 * (downloaded + resume_size) / (download_total + resume_size)
-
-            nonlocal last_timestamp
-            if timeit.default_timer() - last_timestamp >= self._progress_sec:
-                last_timestamp = timeit.default_timer()
-                time_delta = Time.timestamp_delta(last_timestamp - begin_timestamp)
-                log.info('Downloading... %s%% of %s [%s]', f'{progress: >6.2f}', path, time_delta)
-
+            """Progress callback for XFERINFOFUNCTION, only called if NOPROGRESS=0"""
+            if download_total != 0:
+                progress_bar.total = download_total + progress_bar.initial
+            progress_bar.update(downloaded + progress_bar.initial - progress_bar.n)
         return curl_progress_cb
 
     def _curl_debug_cb(self, debug_type: int, debug_msg: bytes) -> None:
@@ -119,7 +117,7 @@ class Downloader:
         if not debug_type:
             return
         debug_msg = debug_msg[:-1].decode('ascii', 'replace')
-        log.debug('Curl: [%s] %s', debug_type, debug_msg)
+        log.debug('curl: [%s] %s', debug_type, debug_msg)
 
     def download(self, url: str, rel_path: str, *, size: int | None = None,
                  digests: dict[str, str] | None = None) -> None:
@@ -149,7 +147,8 @@ class Downloader:
             reraise=True
         ):
             with attempt:
-                self._download_partial(url, path_partial, timestamp=if_modified_since_timestamp)
+                self._download_partial(url, path_partial, timestamp=if_modified_since_timestamp,
+                                       description=os.path.basename(path))
         if not os.path.exists(path_partial):
             return
 
@@ -164,7 +163,8 @@ class Downloader:
         log.debug('Renaming %s to %s', path_partial, path)
         os.rename(path_partial, path)
 
-    def _download_partial(self, url: str, path: str, *, timestamp: int | float | None = None) -> None:
+    def _download_partial(self, url: str, path: str, *,
+                          timestamp: int | float | None = None, description: str | None = None) -> None:
         """Start or resume a partial download of a URL to absolute path.
 
         If timestamp of an already downloaded file is provided, remove the partial file
@@ -173,22 +173,26 @@ class Downloader:
         In case of runtime error or unexpected HTTP status, rollback to initial file size."""
         curl, initial_size = self._get_configured_curl(url, path, timestamp=timestamp)
         curl_success = False
+
         try:
-            with open(path, 'ab') as path_stream:
-                curl.setopt(pycurl.WRITEDATA, path_stream)
-                curl.perform()
+            with open(path, 'ab') as path_stream, \
+                 tqdm(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=description,
+                      disable=(not self._progress or None), leave=False, dynamic_ncols=True, colour='blue',
+                      initial=initial_size) as progress_bar:
+                self._perform_curl_download(curl, path_stream, progress_bar)
             curl_success = True  # curl ignores HTTP status, so it considers 404 etc. successful
+
         finally:
             response_code, response_descr = self._get_response_status(curl)
-            if response_code in self.ACCEPTED_HTTP_STATUS:
+            if curl.getinfo(pycurl.CONDITION_UNMET):
+                log.info('Discarding %s because it is not more recent', path)
+                self._rollback_file(path, initial_size, force_remove=True)
+            elif response_code in self.ACCEPTED_HTTP_STATUS:
                 log.info(('Finished downloading' if curl_success else 'Interrupted while downloading') +
                          f' {path} {initial_size:,} -> {os.path.getsize(path):,} bytes' +
                          f' ({response_code} {response_descr})'
                          f' [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
                 FileSystem.set_file_timestamp(path, curl.getinfo(pycurl.INFO_FILETIME))
-            elif curl.getinfo(pycurl.CONDITION_UNMET):
-                log.info('Discarding %s because it is not more recent', path)
-                self._rollback_file(path, initial_size, force_remove=True)
             else:
                 log.warning('Was downloading %s, but HTTP status is (%s %s)', path, response_code, response_descr)
                 self._rollback_file(path, initial_size)

@@ -55,7 +55,7 @@ class CommandLine:
                             metavar='ALGO', help='digest algorithm: ' + ', '.join(hash_algos))
         parser.add_argument('-d', '--digest', help='expected hexadecimal digest value')
 
-        parser.add_argument('-p', '--progress', action='store_true', help='log progress to stderr')
+        parser.add_argument('-p', '--progress', action='store_true', help='visualize progress on stderr')
         parser.add_argument('-l', '--log', choices=log_choices, default='info',
                             metavar='LEVEL', help='logging level: ' + ', '.join(log_choices))
         parser.add_argument('-v', '--verbose', action='store_true', help='log metadata and headers (implies -l debug)')
