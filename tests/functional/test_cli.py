@@ -1,4 +1,5 @@
 """CLI entry point functional tests"""
+import argparse
 import inspect
 import logging
 import os.path
@@ -10,6 +11,7 @@ from importlib import metadata
 import pytest
 import toml
 from _pytest.capture import CaptureFixture
+from _pytest.logging import LogCaptureFixture
 from pytest_httpserver import HTTPServer
 from pytest_mock import MockerFixture
 
@@ -107,3 +109,64 @@ def test_download_file(mocker: MockerFixture, tmp_path: pathlib.Path, httpserver
     assert file_path.is_file()
     with open(file_path, 'rb') as file:
         assert file.read() == file_data
+
+
+@pytest.mark.parametrize('specify_output_size', [False, True])
+@pytest.mark.parametrize('specify_output_digest', [False, True])
+def test_download_multiple_files(mocker: MockerFixture, caplog: LogCaptureFixture,
+                                 tmp_path: pathlib.Path, httpserver: HTTPServer,
+                                 specify_output_size: bool, specify_output_digest: bool) -> None:
+    """Verify that multiple file arguments are downloaded and verification functions correctly,
+    (including that digest verification is attempted on all files)"""
+    caplog.set_level(logging.DEBUG)
+
+    url_count = 5
+    file_datas = [bytes(chr(ord('x') + idx), 'ascii') * 128 for idx in range(url_count)]
+    file_names = [f'file{idx}.txt' for idx in range(url_count)]
+    file_digest = '150fa3fbdc899bd0b8f95a9fb6027f564d953762'
+    should_succeed = not specify_output_digest
+
+    arguments = ['-b', str(tmp_path), '-l', 'debug', '-v', '-p']
+    if specify_output_size:
+        arguments += ['-s', str(128)]
+    if specify_output_digest:
+        arguments += ['-a', 'sha1', '-d', file_digest]
+
+    for idx in range(url_count):
+        httpserver.expect_ordered_request(
+            url_path := f'/loc1/loc2/{file_names[idx]};a=b', query_string={'c': 'd'}).respond_with_data(file_datas[idx])
+        arguments += [httpserver.url_for(url_path + '?c=d#id')]
+
+    patch_logger_config(mocker, 'debug')
+    patch_system_environment(mocker, arguments)
+
+    if not should_succeed:
+        with pytest.raises(ValueError):
+            cli.main()
+    else:
+        status_code = cli.main()
+        assert status_code == 0
+
+    httpserver.check()
+    for idx in range(url_count):
+        file_path = tmp_path / file_names[idx]
+        assert file_path.exists() == should_succeed or idx == 0
+        if file_path.exists():
+            with open(file_path, 'rb') as file:
+                assert file.read() == file_datas[idx]
+
+
+def test_multiple_downloads_with_output_file(mocker: MockerFixture, tmp_path: pathlib.Path,
+                                             httpserver: HTTPServer) -> None:
+    """Verify that specifying output with multiple files results in exception and now download is attempted"""
+    arguments = ['-b', str(tmp_path), '-o', 'file.txt', '-l', 'critical',
+                 httpserver.url_for('/file1.txt'), httpserver.url_for('/file2.txt')]
+
+    patch_logger_config(mocker, 'critical')
+    patch_system_environment(mocker, arguments)
+
+    with pytest.raises(argparse.ArgumentError):
+        cli.main()
+
+    httpserver.check()
+    assert not os.listdir(tmp_path)
