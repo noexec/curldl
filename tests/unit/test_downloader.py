@@ -205,9 +205,11 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
     download_and_possibly_verify()
     httpserver.check()
 
+    partial_timestamp = os.stat(tmp_path / 'file.bin').st_mtime
     assert read_file_content(tmp_path / 'file.bin') == file_data
     os.rename(tmp_path / 'file.bin', tmp_path / 'file.bin.part')
     os.truncate(tmp_path / 'file.bin.part', part_size)
+    os.utime(tmp_path / 'file.bin.part', times=(partial_timestamp, partial_timestamp))
 
     # Request #2 on partial file: generally fails with 503, which causes pycurl.error due to resume failure
     # Rolls back to existing partial file if verification data is present
