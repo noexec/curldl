@@ -205,9 +205,11 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
     download_and_possibly_verify()
     httpserver.check()
 
+    partial_timestamp = os.stat(tmp_path / 'file.bin').st_mtime
     assert read_file_content(tmp_path / 'file.bin') == file_data
     os.rename(tmp_path / 'file.bin', tmp_path / 'file.bin.part')
     os.truncate(tmp_path / 'file.bin.part', part_size)
+    os.utime(tmp_path / 'file.bin.part', times=(partial_timestamp, partial_timestamp))
 
     # Request #2 on partial file: generally fails with 503, which causes pycurl.error due to resume failure
     # Rolls back to existing partial file if verification data is present
@@ -302,3 +304,27 @@ def test_aborted_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> 
             downloader.download(url, 'some-file.txt')
 
         assert ex_info.value.args[0] == pycurl.E_GOT_NOTHING
+
+
+@pytest.mark.parametrize('size', [100, 5000])
+@pytest.mark.parametrize('specify_size', [False, True])
+@pytest.mark.parametrize('always_keep_part_size', [0, 50, 2499, 2501, 8000])
+def test_partial_download_keep(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: LogCaptureFixture,
+                               size: int, specify_size: bool, always_keep_part_size: int) -> None:
+    """Verify policy of keeping partial download in absence of verification data"""
+    caplog.set_level(logging.DEBUG)
+    with open(tmp_path / 'file.txt.part', 'wb') as part_file:
+        part_file.write(b'x' * (size // 2))
+
+    httpserver.expect_oneshot_request('/file.txt').respond_with_handler(
+        make_range_response_handler('/file.txt', b'y' * size))
+
+    downloader = curldl.Downloader(basedir=tmp_path, verbose=True, retry_attempts=0, min_part_bytes=0,
+                                   min_always_keep_part_bytes=always_keep_part_size)
+    downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=(size if specify_size else None))
+    httpserver.check()
+
+    assert not (tmp_path / 'file.txt.part').exists()
+    assert read_file_content(tmp_path / 'file.txt') == ((b'x' * (size // 2) + b'y' * (size // 2))
+                                                        if specify_size or always_keep_part_size <= size // 2
+                                                        else b'y' * size)

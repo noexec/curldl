@@ -47,8 +47,8 @@ class CommandLine:
         parser.add_argument('-V', '--version', action='version', version=version, help='show program version and exit')
 
         parser.add_argument('-b', '--basedir', default='.', help='base download folder')
-        parser.add_argument('-o', '--output', help='basedir-relative path to the downloaded file, '
-                            'infer from URL if unspecified')
+        output_arg = parser.add_argument('-o', '--output', nargs=1, help='basedir-relative path to the '
+                                         'downloaded file, infer from URL if unspecified')
         parser.add_argument('-s', '--size', type=int, help='expected download file size')
 
         parser.add_argument('-a', '--algo', choices=hash_algos, default='sha256',
@@ -60,28 +60,31 @@ class CommandLine:
                             metavar='LEVEL', help='logging level: ' + ', '.join(log_choices))
         parser.add_argument('-v', '--verbose', action='store_true', help='log metadata and headers (implies -l debug)')
 
-        parser.add_argument('url', help='URL to download')
+        parser.add_argument('url', nargs='+', help='URL(s) to download')
 
         args = parser.parse_args()
         cls._configure_logger(args)
 
-        return cls._infer_arguments(args)
+        return cls._infer_arguments(output_arg, args)
 
     @classmethod
-    def _infer_arguments(cls, args: argparse.Namespace) -> argparse.Namespace:
+    def _infer_arguments(cls, output_arg: argparse.Action, args: argparse.Namespace) -> argparse.Namespace:
         """Infer missing arguments"""
         if not args.output:
-            url_path = urllib.parse.unquote(urllib.parse.urlparse(args.url).path)
-            args.output = os.path.basename(url_path)
-            log.info('Saving output to: %s', args.output)
+            args.output = [os.path.basename(urllib.parse.unquote(urllib.parse.urlparse(url).path)) for url in args.url]
+            log.info('Saving download(s) to: %s', ', '.join(args.output))
+
+        elif len(args.output) != len(args.url):
+            raise argparse.ArgumentError(output_arg, 'Cannot specify output file when downloading multiple URLs')
 
         return args
 
     def main(self) -> object:
         """Command-line program entry point"""
         downloader = Downloader(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
-        downloader.download(self.args.url, rel_path=self.args.output, size=self.args.size,
-                            digests=self.args.digest and {self.args.algo: self.args.digest})
+        for url, output in zip(self.args.url, self.args.output):
+            downloader.download(url, rel_path=output, size=self.args.size,
+                                digests=self.args.digest and {self.args.algo: self.args.digest})
         return 0
 
     @staticmethod
