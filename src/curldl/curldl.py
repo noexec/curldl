@@ -18,26 +18,19 @@ log = logging.getLogger(__name__)
 
 class Downloader:
     """Interface for downloading functionality of PycURL"""
-    ACCEPTED_HTTP_STATUS = {
-        http.HTTPStatus.OK,
-        http.HTTPStatus.PARTIAL_CONTENT,
-        http.HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE,
-    }
-
     SUPPORTED_VERBOSITY = {
         pycurl.INFOTYPE_TEXT: 'TEXT',
         pycurl.INFOTYPE_HEADER_IN: 'IHDR',
         pycurl.INFOTYPE_HEADER_OUT: 'OHDR',
     }
 
-    RETRY_ABORT = {
+    DOWNLOAD_ABORT = {
         pycurl.E_WRITE_ERROR,
         pycurl.E_ABORTED_BY_CALLBACK,
     }
 
     def __init__(self, basedir: str | os.PathLike[str], *, progress: bool = False, verbose: bool = False,
-                 user_agent: str = 'curl/7.61.1',  # 2018-09-05
-                 retry_attempts: int = 3, retry_wait_sec: int | float = 2,
+                 user_agent: str = 'curl', retry_attempts: int = 3, retry_wait_sec: int | float = 2,
                  timeout_sec: int | float = 120, max_redirects: int = 5,
                  min_part_bytes: int = 64 * 1024, min_always_keep_part_bytes: int = 64 * 1024 ** 2) -> None:
         """Initialize a PycURL-based downloader with a single pycurl.Curl instance
@@ -70,6 +63,7 @@ class Downloader:
         curl.setopt(pycurl.URL, url)
         curl.setopt(pycurl.USERAGENT, self._user_agent)
 
+        curl.setopt(pycurl.FAILONERROR, True)
         curl.setopt(pycurl.OPT_FILETIME, True)
         curl.setopt(pycurl.FOLLOWLOCATION, True)
         curl.setopt(pycurl.MAXREDIRS, self._max_redirects)
@@ -142,7 +136,7 @@ class Downloader:
             stop=tenacity.stop_after_attempt(self._retry_attempts),
             wait=tenacity.wait_fixed(self._retry_wait_sec),
             retry=(tenacity.retry_if_exception_type(pycurl.error) &
-                   tenacity.retry_if_exception(lambda error: error.args[0] not in self.RETRY_ABORT)),
+                   tenacity.retry_if_exception(lambda error: error.args[0] not in self.DOWNLOAD_ABORT)),
             before_sleep=tenacity.before_sleep_log(log, logging.DEBUG),
             reraise=True
         ):
@@ -172,7 +166,13 @@ class Downloader:
 
         In case of runtime error or unexpected HTTP status, rollback to initial file size."""
         curl, initial_size = self._get_configured_curl(url, path, timestamp=timestamp)
-        curl_success = False
+
+        def log_partial_download(message_prefix: str) -> None:
+            """Log information about partially downloaded file"""
+            if log.isEnabledFor(logging.INFO):
+                code, descr = self._get_response_status(curl)
+                log.info(message_prefix + f' {path} {initial_size:,} -> {os.path.getsize(path):,} bytes'
+                         f' ({code} {descr}) [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
 
         try:
             with open(path, 'ab') as path_stream, \
@@ -180,27 +180,24 @@ class Downloader:
                       disable=(not self._progress or None), leave=False, dynamic_ncols=True, colour='blue',
                       initial=initial_size) as progress_bar:
                 self._perform_curl_download(curl, path_stream, progress_bar)
-            curl_success = True  # curl ignores HTTP status, so it considers 404 etc. successful
 
-        finally:
+        except pycurl.error as error:
             response_code, response_descr = self._get_response_status(curl)
-            if curl.getinfo(pycurl.CONDITION_UNMET):
-                log.info('Discarding %s because it is not more recent', path)
-                self._rollback_file(path, initial_size, force_remove=True)
-            elif response_code in self.ACCEPTED_HTTP_STATUS:
-                log.info(('Finished downloading' if curl_success else 'Interrupted while downloading') +
-                         f' {path} {initial_size:,} -> {os.path.getsize(path):,} bytes' +
-                         f' ({response_code} {response_descr})'
-                         f' [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
-                FileSystem.set_file_timestamp(path, curl.getinfo(pycurl.INFO_FILETIME))
-            else:
-                log.warning('Was downloading %s, but HTTP status is (%s %s)', path, response_code, response_descr)
-                self._rollback_file(path, initial_size)
-                if curl_success:
-                    raise RuntimeError(f'{response_descr} [{response_code}] when downloading {path},'
-                                       f' aborting without retries')
-                # fix branch code coverage for conditional above
-                pass    # pylint: disable=unnecessary-pass
+            # HTTP 416: Rare case of resuming from fully downloaded .part
+            if response_code != http.HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE:
+                if error.args[0] in self.DOWNLOAD_ABORT:
+                    log_partial_download('Interrupted while downloading')
+                else:
+                    log.warning('Was downloading %s, but HTTP status is (%s %s)', path, response_code, response_descr)
+                    self._rollback_file(path, initial_size)
+                raise
+
+        if curl.getinfo(pycurl.CONDITION_UNMET):
+            log.info('Discarding %s because it is not more recent', path)
+            self._rollback_file(path, initial_size, force_remove=True)
+        else:
+            log_partial_download('Finished downloading')
+            FileSystem.set_file_timestamp(path, curl.getinfo(pycurl.INFO_FILETIME))
 
     def _prepare_full_path(self, rel_path: str) -> str:
         """Verify that basedir-relative path is safe and create the required directories"""

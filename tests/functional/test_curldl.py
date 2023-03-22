@@ -5,6 +5,7 @@ import logging
 import os
 import pathlib
 
+import pycurl
 import pytest
 from _pytest.logging import LogCaptureFixture
 from pytest_httpserver import HTTPServer
@@ -26,7 +27,7 @@ def test_file_downloads(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: 
                         progress: bool, verbose: bool, log_level: int) -> None:
     """One or more successful or 404, one-shot or sequence, safe or unsafe file download attempts"""
     caplog.set_level(log_level)
-    downloader = curldl.Downloader(basedir=tmp_path/'base', progress=progress, verbose=verbose)
+    downloader = curldl.Downloader(basedir=tmp_path/'base', progress=progress, verbose=verbose, retry_attempts=0)
 
     file_content = os.urandom(200 if size is None else size)
     file_digests = {algo: compute_hex_digest(file_content, algo) for algo in algos} if algos else None
@@ -48,7 +49,7 @@ def test_file_downloads(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: 
                 assert read_file_content(file_local_path) == file_content
 
             else:
-                with pytest.raises(RuntimeError if file_path_is_safe else ValueError):
+                with pytest.raises(pycurl.error if file_path_is_safe else ValueError):
                     downloader.download(httpserver.url_for('/location/filename') + file_suffix + '.404',
                                         file_path + file_suffix, size=size, digests=file_digests)
                 assert not file_local_path.exists()

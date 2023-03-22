@@ -211,11 +211,11 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
     os.truncate(tmp_path / 'file.bin.part', part_size)
     os.utime(tmp_path / 'file.bin.part', times=(partial_timestamp, partial_timestamp))
 
-    # Request #2 on partial file: generally fails with 503, which causes pycurl.error due to resume failure
+    # Request #2 on partial file: generally fails with 503
     # Rolls back to existing partial file if verification data is present
-    with pytest.raises(pycurl.error if verify_file and part_size > 0 else RuntimeError) as ex_info:
+    with pytest.raises(pycurl.error) as ex_info:
         download_and_possibly_verify()
-    assert isinstance(ex_info.value, RuntimeError) or ex_info.value.args[0] == pycurl.E_HTTP_RANGE_ERROR
+    assert ex_info.value.args[0] == pycurl.E_HTTP_RETURNED_ERROR
     httpserver.check()
 
     assert ((tmp_path / 'file.bin.part').exists() ==
