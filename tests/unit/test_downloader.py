@@ -180,7 +180,7 @@ def test_redirected_download(tmp_path: pathlib.Path, httpserver: HTTPServer) -> 
     assert read_file_content(tmp_path / 'file.txt') == b'x' * 4096
 
 
-@pytest.mark.parametrize('size, part_size', [(100, 50), (101, 0), (51, 51), (0, 0), (150, 200)])
+@pytest.mark.parametrize('size, part_size', [(100, 50), (101, 0), (51, 51), (51, 50), (0, 0), (150, 200)])
 @pytest.mark.parametrize('min_part_bytes', [0, 50, 51])
 @pytest.mark.parametrize('verify_file', [False, True])
 @pytest.mark.parametrize('timestamp', [1234567890, None])
@@ -225,21 +225,17 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
     assert not (tmp_path / 'file.bin').exists()
 
     # Request #3: should succeed unless weird conditions
-    if verify_file and part_size > size:
-        with pytest.raises(ValueError):
+    if verify_file and part_size >= size > 0:
+        with pytest.raises(pycurl.error):
             download_and_possibly_verify()
+        assert isinstance(httpserver.handler_errors[0], werkzeug.exceptions.RequestedRangeNotSatisfiable)
         httpserver.check_assertions()
         return
 
     download_and_possibly_verify()
-    if verify_file and part_size >= size > 0:
-        assert isinstance(httpserver.handler_errors[0], werkzeug.exceptions.RequestedRangeNotSatisfiable)
-        httpserver.clear_handler_errors()
     httpserver.check()
 
-    # NOTE: race condition if .part has the target file size, since 416 has no Last-Modified header
-    if part_size != size != 0:
-        assert os.stat(tmp_path / 'file.bin').st_mtime == (timestamp or BASE_TIMESTAMP + 2 * 10)
+    assert os.stat(tmp_path / 'file.bin').st_mtime == (timestamp or BASE_TIMESTAMP + 2 * 10)
     assert read_file_content(tmp_path / 'file.bin') == file_data
 
 

@@ -167,12 +167,12 @@ class Downloader:
         In case of runtime error or unexpected HTTP status, rollback to initial file size."""
         curl, initial_size = self._get_configured_curl(url, path, timestamp=timestamp)
 
-        def log_partial_download(message_prefix: str) -> None:
+        def log_partial_download(message_prefix: str, *, error: bool = False) -> None:
             """Log information about partially downloaded file"""
-            if log.isEnabledFor(logging.INFO):
+            if log.isEnabledFor(log_level := logging.WARNING if error else logging.INFO):
                 code, descr = self._get_response_status(curl)
-                log.info(message_prefix + f' {path} {initial_size:,} -> {os.path.getsize(path):,} bytes'
-                         f' ({code} {descr}) [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
+                log.log(log_level, message_prefix + f' {path} {initial_size:,} -> {os.path.getsize(path):,} bytes'
+                        f' ({code}: {descr}) [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
 
         try:
             with open(path, 'ab') as path_stream, \
@@ -181,16 +181,13 @@ class Downloader:
                       initial=initial_size) as progress_bar:
                 self._perform_curl_download(curl, path_stream, progress_bar)
 
-        except pycurl.error as error:
-            response_code, response_descr = self._get_response_status(curl)
-            # HTTP 416: Rare case of resuming from fully downloaded .part
-            if response_code != http.HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE:
-                if error.args[0] in self.DOWNLOAD_ABORT:
-                    log_partial_download('Interrupted while downloading')
-                else:
-                    log.warning('Was downloading %s, but HTTP status is (%s %s)', path, response_code, response_descr)
-                    self._rollback_file(path, initial_size)
-                raise
+        except pycurl.error as ex:
+            if ex.args[0] in self.DOWNLOAD_ABORT:
+                log_partial_download('Interrupted while downloading')
+            else:
+                log_partial_download('Error while downloading', error=True)
+                self._rollback_file(path, initial_size)
+            raise
 
         if curl.getinfo(pycurl.CONDITION_UNMET):
             log.info('Discarding %s because it is not more recent', path)
