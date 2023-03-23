@@ -5,6 +5,7 @@ import http
 import http.client
 import logging
 import os.path
+import urllib.parse
 from typing import Callable, BinaryIO, NoReturn
 
 import pycurl
@@ -170,7 +171,7 @@ class Downloader:
         def log_partial_download(message_prefix: str, *, error: bool = False) -> None:
             """Log information about partially downloaded file"""
             if log.isEnabledFor(log_level := logging.WARNING if error else logging.INFO):
-                code, descr = self._get_response_status(curl)
+                code, descr = self._get_response_status(curl, url)
                 log.log(log_level, message_prefix + f' {path} {initial_size:,} -> {os.path.getsize(path):,} bytes'
                         f' ({code}: {descr}) [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
 
@@ -203,13 +204,17 @@ class Downloader:
         FileSystem.create_directory_for_path(path)
         return path
 
-    def _get_response_status(self, curl: pycurl.Curl) -> tuple[int, str]:
+    def _get_response_status(self, curl: pycurl.Curl, url: str) -> tuple[int, str]:
         """Retrieve HTTP response code and description from cURL.
         Note that cURL returns 0 if response code is not ready yet."""
-        response_descr = 'Failed to Start Downloading'
-        if response_code := curl.getinfo(pycurl.RESPONSE_CODE):
-            response_descr = http.client.responses.get(response_code, 'Unknown Status')
-        return response_code, response_descr
+        # CURLINFO_SCHEME added in libcurl 7.52.0 (see https://curl.se/libcurl/c/curl_easy_getinfo.html)
+        scheme = urllib.parse.urlparse(curl.getinfo(pycurl.EFFECTIVE_URL) or url).scheme
+        descr = 'Failed to Start Downloading'
+        if code := curl.getinfo(pycurl.RESPONSE_CODE):
+            descr = 'No Description'
+            if scheme in ['http', 'https']:
+                descr = http.client.responses.get(code, 'Unknown Status')
+        return code, f'{scheme.upper()} {descr}'
 
     def _rollback_file(self, path: str, initial_size: int, *, force_remove: bool = False) -> None:
         """Truncate file at path to its original size. If the post-truncation file size
