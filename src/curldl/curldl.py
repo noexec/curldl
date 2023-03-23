@@ -28,10 +28,13 @@ class Downloader:
         pycurl.E_TOO_MANY_REDIRECTS, pycurl.E_GOT_NOTHING, pycurl.E_SEND_ERROR, pycurl.E_RECV_ERROR, pycurl.E_SSH,
         # TODO: Add once available: E_HTTP2_STREAM, E_HTTP3, E_QUIC_CONNECT_ERROR, E_PROXY, E_UNRECOVERABLE_POLL
     }
-    """libcurl errors accepted by download retry policy,
-    see https://curl.se/libcurl/c/libcurl-errors.html"""
+    """libcurl errors accepted by download retry policy"""
 
-    SUPPORTED_VERBOSITY = {
+    RESUME_FROM_SCHEMES = {'http', 'https', 'ftp', 'ftps', 'file'}
+    """URL schemes supported by RESUME_FROM. sftp is not included because its implementation is buggy
+    (total download size is reduced twice by initial size)"""
+
+    VERBOSE_LOGGING = {
         pycurl.INFOTYPE_TEXT: 'TEXT',
         pycurl.INFOTYPE_HEADER_IN: 'IHDR',
         pycurl.INFOTYPE_HEADER_OUT: 'OHDR',
@@ -73,9 +76,12 @@ class Downloader:
 
         curl.setopt(pycurl.FAILONERROR, True)
         curl.setopt(pycurl.OPT_FILETIME, True)
+        curl.setopt(pycurl.TIMEOUT, self._timeout_sec)
+
         curl.setopt(pycurl.FOLLOWLOCATION, True)
         curl.setopt(pycurl.MAXREDIRS, self._max_redirects)
-        curl.setopt(pycurl.TIMEOUT, self._timeout_sec)
+        curl.setopt(pycurl.REDIR_PROTOCOLS,
+                    ((self._get_url_scheme(url) == 'http') and pycurl.PROTO_HTTP) | pycurl.PROTO_HTTPS)
 
         curl.setopt(pycurl.VERBOSE, self._verbose)
         curl.setopt(pycurl.DEBUGFUNCTION, self._curl_debug_cb)
@@ -104,7 +110,8 @@ class Downloader:
 
         curl.perform()
 
-    def _get_curl_progress_callback(self, progress_bar: tqdm[NoReturn]) -> Callable[[int, int, int, int], None]:
+    @staticmethod
+    def _get_curl_progress_callback(progress_bar: tqdm[NoReturn]) -> Callable[[int, int, int, int], None]:
         """Constructs a callback for XFERINFOFUNCTION"""
         def curl_progress_cb(download_total: int, downloaded: int, upload_total: int, uploaded: int) -> None:
             """Progress callback for XFERINFOFUNCTION, only called if NOPROGRESS=0"""
@@ -113,9 +120,10 @@ class Downloader:
             progress_bar.update(downloaded + progress_bar.initial - progress_bar.n)
         return curl_progress_cb
 
-    def _curl_debug_cb(self, debug_type: int, debug_msg: bytes) -> None:
+    @classmethod
+    def _curl_debug_cb(cls, debug_type: int, debug_msg: bytes) -> None:
         """Callback for DEBUGFUNCTION"""
-        debug_type = self.SUPPORTED_VERBOSITY.get(debug_type)
+        debug_type = cls.VERBOSE_LOGGING.get(debug_type)
         if not debug_type:
             return
         debug_msg = debug_msg[:-1].decode('ascii', 'replace')
@@ -135,10 +143,13 @@ class Downloader:
         if os.path.exists(path) and size is None:
             if_modified_since_timestamp = os.path.getmtime(path)
 
-        if (size is None and not digests and os.path.exists(path_partial)
-                and os.path.getsize(path_partial) < self._always_keep_part_bytes):
-            log.info('Removing existing partial download of %s since no size/digest to compare to', path)
-            os.remove(path_partial)
+        if os.path.exists(path_partial):
+            if self._get_url_scheme(url) not in self.RESUME_FROM_SCHEMES:
+                log.info('Removing partial download of %s since resume is not supported for URL', path)
+                os.remove(path_partial)
+            elif size is None and not digests and os.path.getsize(path_partial) < self._always_keep_part_bytes:
+                log.info('Removing partial download of %s since no size/digest to compare to', path)
+                os.remove(path_partial)
 
         for attempt in tenacity.Retrying(
             stop=tenacity.stop_after_attempt(self._retry_attempts),
@@ -212,17 +223,22 @@ class Downloader:
         FileSystem.create_directory_for_path(path)
         return path
 
-    def _get_response_status(self, curl: pycurl.Curl, url: str) -> tuple[int, str]:
+    @classmethod
+    def _get_response_status(cls, curl: pycurl.Curl, url: str) -> tuple[int, str]:
         """Retrieve HTTP response code and description from cURL.
         Note that cURL returns 0 if response code is not ready yet."""
-        # TODO: Use CURLINFO_SCHEME once 7.52.0 API is available
-        scheme = urllib.parse.urlparse(curl.getinfo(pycurl.EFFECTIVE_URL) or url).scheme
+        scheme = cls._get_url_scheme(curl.getinfo(pycurl.EFFECTIVE_URL) or url)
         descr = 'No Status Available'
         if code := curl.getinfo(pycurl.RESPONSE_CODE):
             descr = 'No Description'
             if scheme in ['http', 'https']:
                 descr = http.client.responses.get(code, 'Unknown Status')
         return code, f'{scheme.upper()} {descr}'
+
+    @staticmethod
+    def _get_url_scheme(url: str) -> str:
+        """Return URL scheme (lowercase)"""
+        return urllib.parse.urlparse(url).scheme.lower()
 
     def _discard_file(self, path: str, *, force_remove: bool = False) -> None:
         """If file size is below a threshold, it is removed. This is also done if force_remove is True."""
