@@ -30,7 +30,7 @@ class Cryptography:
 
         log.debug('Computing %s-bit %s for %s', hash_obj.digest_size * 8, digest_name, path)
         if hash_obj.digest_size*2 != len(digest):
-            raise ValueError(f'Expected {digest_name} for {path} has length != {hash_obj.digest_size} bytes')
+            raise ValueError(f'Expected {digest_name} for {path} has length != {hash_obj.digest_size} B')
 
         with open(path, 'rb') as path_obj:
             while chunk := path_obj.read(cls.FILE_CHUNK_BYTES):

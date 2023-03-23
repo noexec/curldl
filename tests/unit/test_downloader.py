@@ -316,7 +316,7 @@ def test_partial_download_keep(tmp_path: pathlib.Path, httpserver: HTTPServer, c
         make_range_response_handler('/file.txt', b'y' * size))
 
     downloader = curldl.Downloader(basedir=tmp_path, verbose=True, retry_attempts=0, min_part_bytes=0,
-                                   min_always_keep_part_bytes=always_keep_part_size)
+                                   always_keep_part_bytes=always_keep_part_size)
     downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=(size if specify_size else None))
     httpserver.check()
 

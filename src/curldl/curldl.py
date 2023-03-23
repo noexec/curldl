@@ -19,21 +19,28 @@ log = logging.getLogger(__name__)
 
 class Downloader:
     """Interface for downloading functionality of PycURL"""
+
+    DOWNLOAD_RETRY_ERRORS = {
+        pycurl.E_COULDNT_RESOLVE_PROXY, pycurl.E_COULDNT_RESOLVE_HOST, pycurl.E_COULDNT_CONNECT,
+        pycurl.E_FTP_ACCEPT_FAILED, pycurl.E_FTP_ACCEPT_TIMEOUT, pycurl.E_FTP_CANT_GET_HOST,
+        pycurl.E_HTTP2, pycurl.E_PARTIAL_FILE, pycurl.E_FTP_PARTIAL_FILE, pycurl.E_HTTP_RETURNED_ERROR,
+        pycurl.E_OPERATION_TIMEDOUT, pycurl.E_FTP_PORT_FAILED, pycurl.E_SSL_CONNECT_ERROR,
+        pycurl.E_TOO_MANY_REDIRECTS, pycurl.E_GOT_NOTHING, pycurl.E_SEND_ERROR, pycurl.E_RECV_ERROR, pycurl.E_SSH,
+        # TODO: Add once available: E_HTTP2_STREAM, E_HTTP3, E_QUIC_CONNECT_ERROR, E_PROXY, E_UNRECOVERABLE_POLL
+    }
+    """libcurl errors accepted by download retry policy,
+    see https://curl.se/libcurl/c/libcurl-errors.html"""
+
     SUPPORTED_VERBOSITY = {
         pycurl.INFOTYPE_TEXT: 'TEXT',
         pycurl.INFOTYPE_HEADER_IN: 'IHDR',
         pycurl.INFOTYPE_HEADER_OUT: 'OHDR',
     }
 
-    DOWNLOAD_ABORT = {
-        pycurl.E_WRITE_ERROR,
-        pycurl.E_ABORTED_BY_CALLBACK,
-    }
-
     def __init__(self, basedir: str | os.PathLike[str], *, progress: bool = False, verbose: bool = False,
                  user_agent: str = 'curl', retry_attempts: int = 3, retry_wait_sec: int | float = 2,
                  timeout_sec: int | float = 120, max_redirects: int = 5,
-                 min_part_bytes: int = 64 * 1024, min_always_keep_part_bytes: int = 64 * 1024 ** 2) -> None:
+                 min_part_bytes: int = 64 * 1024, always_keep_part_bytes: int = 64 * 1024 ** 2) -> None:
         """Initialize a PycURL-based downloader with a single pycurl.Curl instance
         that is reused and reconfigured for each download. The resulting downloader
         object should be therefore not shared between several threads."""
@@ -50,7 +57,7 @@ class Downloader:
         self._max_redirects = max_redirects
 
         self._min_part_bytes = min_part_bytes
-        self._min_always_keep_part_bytes = min_always_keep_part_bytes
+        self._always_keep_part_bytes = always_keep_part_bytes
 
         self._unconfigured_curl = pycurl.Curl()
 
@@ -74,7 +81,7 @@ class Downloader:
         curl.setopt(pycurl.DEBUGFUNCTION, self._curl_debug_cb)
 
         if initial_size := FileSystem.get_file_size(path):
-            log.info('Resuming download of %s to %s at %s bytes', url, path, f'{initial_size:,}')
+            log.info('Resuming download of %s to %s at %s B', url, path, f'{initial_size:,}')
             curl.setopt(pycurl.RESUME_FROM, initial_size)
         else:
             log.info('Downloading %s to %s', url, path)
@@ -121,7 +128,7 @@ class Downloader:
         path, path_partial = [self._prepare_full_path(rel_path + rel_ext) for rel_ext in ('', '.part')]
 
         if FileSystem.get_file_size(path, default=-1) == size:
-            log.debug('Skipping update of %s since it has the expected size %s bytes', path, f'{size:,}')
+            log.debug('Skipping update of %s since it has the expected size %s B', path, f'{size:,}')
             return
 
         if_modified_since_timestamp = None
@@ -129,7 +136,7 @@ class Downloader:
             if_modified_since_timestamp = os.path.getmtime(path)
 
         if (size is None and not digests and os.path.exists(path_partial)
-                and os.path.getsize(path_partial) < self._min_always_keep_part_bytes):
+                and os.path.getsize(path_partial) < self._always_keep_part_bytes):
             log.info('Removing existing partial download of %s since no size/digest to compare to', path)
             os.remove(path_partial)
 
@@ -137,7 +144,7 @@ class Downloader:
             stop=tenacity.stop_after_attempt(self._retry_attempts),
             wait=tenacity.wait_fixed(self._retry_wait_sec),
             retry=(tenacity.retry_if_exception_type(pycurl.error) &
-                   tenacity.retry_if_exception(lambda error: error.args[0] not in self.DOWNLOAD_ABORT)),
+                   tenacity.retry_if_exception(lambda error: error.args[0] in self.DOWNLOAD_RETRY_ERRORS)),
             before_sleep=tenacity.before_sleep_log(log, logging.DEBUG),
             reraise=True
         ):
@@ -168,12 +175,15 @@ class Downloader:
         In case of runtime error or unexpected HTTP status, rollback to initial file size."""
         curl, initial_size = self._get_configured_curl(url, path, timestamp=timestamp)
 
-        def log_partial_download(message_prefix: str, *, error: bool = False) -> None:
+        def log_partial_download(message_prefix: str, *, error: pycurl.error | None = None) -> None:
             """Log information about partially downloaded file"""
-            if log.isEnabledFor(log_level := logging.WARNING if error else logging.INFO):
-                code, descr = self._get_response_status(curl, url)
-                log.log(log_level, message_prefix + f' {path} {initial_size:,} -> {os.path.getsize(path):,} bytes'
-                        f' ({code}: {descr}) [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
+            log_level = logging.ERROR if error else logging.INFO
+            if not log.isEnabledFor(log_level):
+                return
+            code, descr = self._get_response_status(curl, url)
+            status = (f'{error.args[0]}: {error.args[1]} / ' if error else '') + f'{code}: {descr}'
+            log.log(log_level, message_prefix + f' {path} {initial_size:,} -> {os.path.getsize(path):,} B'
+                    f' ({status}) [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
 
         try:
             with open(path, 'ab') as path_stream, \
@@ -183,19 +193,17 @@ class Downloader:
                 self._perform_curl_download(curl, path_stream, progress_bar)
 
         except pycurl.error as ex:
-            if ex.args[0] in self.DOWNLOAD_ABORT:
-                log_partial_download('Interrupted while downloading')
-            else:
-                log_partial_download('Error while downloading', error=True)
-                self._rollback_file(path, initial_size)
+            log_partial_download('Download interrupted', error=ex)
+            self._discard_file(path)
             raise
 
         if curl.getinfo(pycurl.CONDITION_UNMET):
             log.info('Discarding %s because it is not more recent', path)
-            self._rollback_file(path, initial_size, force_remove=True)
-        else:
-            log_partial_download('Finished downloading')
-            FileSystem.set_file_timestamp(path, curl.getinfo(pycurl.INFO_FILETIME))
+            self._discard_file(path, force_remove=True)
+            return
+
+        log_partial_download('Finished downloading')
+        FileSystem.set_file_timestamp(path, curl.getinfo(pycurl.INFO_FILETIME))
 
     def _prepare_full_path(self, rel_path: str) -> str:
         """Verify that basedir-relative path is safe and create the required directories"""
@@ -207,24 +215,18 @@ class Downloader:
     def _get_response_status(self, curl: pycurl.Curl, url: str) -> tuple[int, str]:
         """Retrieve HTTP response code and description from cURL.
         Note that cURL returns 0 if response code is not ready yet."""
-        # CURLINFO_SCHEME added in libcurl 7.52.0 (see https://curl.se/libcurl/c/curl_easy_getinfo.html)
+        # TODO: Use CURLINFO_SCHEME once 7.52.0 API is available
         scheme = urllib.parse.urlparse(curl.getinfo(pycurl.EFFECTIVE_URL) or url).scheme
-        descr = 'Failed to Start Downloading'
+        descr = 'No Status Available'
         if code := curl.getinfo(pycurl.RESPONSE_CODE):
             descr = 'No Description'
             if scheme in ['http', 'https']:
                 descr = http.client.responses.get(code, 'Unknown Status')
         return code, f'{scheme.upper()} {descr}'
 
-    def _rollback_file(self, path: str, initial_size: int, *, force_remove: bool = False) -> None:
-        """Truncate file at path to its original size. If the post-truncation file size
-        is below a threshold, it is removed. This is also done if force_remove is True."""
-        current_size = os.path.getsize(path)
-        assert current_size >= initial_size
-
-        if initial_size < self._min_part_bytes or force_remove:
-            log.debug('Removing %s instead of truncating back to %s bytes', path, f'{initial_size:,}')
+    def _discard_file(self, path: str, *, force_remove: bool = False) -> None:
+        """If file size is below a threshold, it is removed. This is also done if force_remove is True."""
+        file_size = os.path.getsize(path)
+        if force_remove or file_size < self._min_part_bytes:
+            log.debug('Removing %s since size of %s B is below threshold', path, f'{file_size:,}')
             os.remove(path)
-        elif initial_size < current_size:
-            log.warning('Truncating %s back to %s bytes', path, f'{initial_size:,}')
-            os.truncate(path, initial_size)
