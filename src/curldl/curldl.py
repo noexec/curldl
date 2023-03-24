@@ -1,11 +1,12 @@
 """Interface for PycURL functionality"""
 from __future__ import annotations
 
-import http
 import http.client
 import logging
+import operator
 import os.path
 import urllib.parse
+from functools import reduce
 from typing import Callable, BinaryIO, NoReturn
 
 import pycurl
@@ -30,9 +31,17 @@ class Downloader:
     }
     """libcurl errors accepted by download retry policy"""
 
+    DEFAULT_ALLOWED_PROTOCOLS = {
+        pycurl.PROTO_HTTP, pycurl.PROTO_HTTPS,
+        pycurl.PROTO_FTP, pycurl.PROTO_FTPS,
+        pycurl.PROTO_SFTP
+    }
+    """Allowed URL schemes"""
+
     RESUME_FROM_SCHEMES = {'http', 'https', 'ftp', 'ftps', 'file'}
-    """URL schemes supported by RESUME_FROM. sftp is not included because its implementation is buggy
-    (total download size is reduced twice by initial size)"""
+    """URL schemes supported by RESUME_FROM. SFTP is not included because its implementation is buggy
+    (total download size is reduced twice by initial size). Scheme is extracted via urllib from initial URL,
+    but there are no security implications since it is only used for removing partial downloads."""
 
     VERBOSE_LOGGING = {
         pycurl.INFOTYPE_TEXT: 'TEXT',
@@ -42,7 +51,7 @@ class Downloader:
 
     def __init__(self, basedir: str | os.PathLike[str], *, progress: bool = False, verbose: bool = False,
                  user_agent: str = 'curl', retry_attempts: int = 3, retry_wait_sec: int | float = 2,
-                 timeout_sec: int | float = 120, max_redirects: int = 5,
+                 timeout_sec: int | float = 120, max_redirects: int = 5, allowed_protocols_bitmask: int = 0,
                  min_part_bytes: int = 64 * 1024, always_keep_part_bytes: int = 64 * 1024 ** 2) -> None:
         """Initialize a PycURL-based downloader with a single pycurl.Curl instance
         that is reused and reconfigured for each download. The resulting downloader
@@ -58,6 +67,8 @@ class Downloader:
 
         self._timeout_sec = timeout_sec
         self._max_redirects = max_redirects
+        self._allowed_protocols_bitmask = (allowed_protocols_bitmask
+                                           or reduce(operator.or_, self.DEFAULT_ALLOWED_PROTOCOLS))
 
         self._min_part_bytes = min_part_bytes
         self._always_keep_part_bytes = always_keep_part_bytes
@@ -82,6 +93,11 @@ class Downloader:
         curl.setopt(pycurl.MAXREDIRS, self._max_redirects)
         curl.setopt(pycurl.REDIR_PROTOCOLS,
                     ((self._get_url_scheme(url) == 'http') and pycurl.PROTO_HTTP) | pycurl.PROTO_HTTPS)
+
+        curl.setopt(pycurl.PROTOCOLS, self._allowed_protocols_bitmask)
+        curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_ANYSAFE)
+        curl.setopt(pycurl.PROXYAUTH, pycurl.HTTPAUTH_ANYSAFE)
+        curl.setopt(pycurl.USE_SSL, pycurl.USESSL_TRY)
 
         curl.setopt(pycurl.VERBOSE, self._verbose)
         curl.setopt(pycurl.DEBUGFUNCTION, self._curl_debug_cb)
@@ -192,7 +208,7 @@ class Downloader:
             if not log.isEnabledFor(log_level):
                 return
             code, descr = self._get_response_status(curl, url)
-            status = (f'{error.args[0]}: {error.args[1]} / ' if error else '') + f'{code}: {descr}'
+            status = (f'{error.args[0]}: {error.args[1] or "No Description"} / ' if error else '') + f'{code}: {descr}'
             log.log(log_level, message_prefix + f' {path} {initial_size:,} -> {os.path.getsize(path):,} B'
                     f' ({status}) [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
 

@@ -324,3 +324,45 @@ def test_partial_download_keep(tmp_path: pathlib.Path, httpserver: HTTPServer, c
     assert read_file_content(tmp_path / 'file.txt') == ((b'x' * (size // 2) + b'y' * (size // 2))
                                                         if specify_size or always_keep_part_size <= size // 2
                                                         else b'y' * size)
+
+
+@pytest.mark.parametrize('scheme_str', ['file', 'gopher', 'https', 'ftp'])
+def test_disallowed_schemes(tmp_path: pathlib.Path, caplog: LogCaptureFixture, scheme_str: str) -> None:
+    """Verify disallowed schemes are rejected by PycURL"""
+    caplog.set_level(logging.DEBUG)
+
+    scheme = getattr(pycurl, 'PROTO_' + scheme_str.upper())
+    default_enabled = scheme in curldl.Downloader.DEFAULT_ALLOWED_PROTOCOLS
+    assert bool(curldl.Downloader(basedir=tmp_path)._allowed_protocols_bitmask & scheme) == default_enabled
+
+    downloader = curldl.Downloader(basedir=tmp_path, min_part_bytes=0, allowed_protocols_bitmask=
+                                   ((pycurl.PROTO_TFTP | pycurl.PROTO_DICT) if default_enabled else 0))
+    with pytest.raises(pycurl.error) as ex_info:
+        downloader.download(f'{scheme_str}://{"example.com" if scheme_str != "file" else ""}/test', 'test')
+
+    assert ex_info.value.args[0] == pycurl.E_UNSUPPORTED_PROTOCOL
+    assert not (tmp_path / 'test').exists()
+
+
+@pytest.mark.parametrize('disable_resume', [False, True])
+def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture,
+                                      mocker: MockerFixture, disable_resume: bool) -> None:
+    """Verify that a partial download via file:// URL is successful (or not) once FILE scheme is allowed"""
+    caplog.set_level(logging.DEBUG)
+    if disable_resume:
+        mocker.patch.object(curldl.Downloader, 'RESUME_FROM_SCHEMES', curldl.Downloader.RESUME_FROM_SCHEMES - {'file'})
+
+    with open(tmp_path / 'file.txt', 'wb') as file:
+        file.write(b'x' * 512)
+
+    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=pycurl.PROTO_FILE)
+    downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.out')
+    assert read_file_content(tmp_path / 'file.out') == b'x' * 512
+
+    with open(tmp_path / 'file.txt', 'wb') as file:
+        file.write(b'y' * 512)
+    os.rename(tmp_path / 'file.out', tmp_path / 'file.out.part')
+    os.truncate(tmp_path / 'file.out.part', 256)
+
+    downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.out', size=512)
+    assert read_file_content(tmp_path / 'file.out') == (b'y' if disable_resume else b'x') * 256 + b'y' * 256
