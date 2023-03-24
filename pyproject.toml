@@ -99,6 +99,9 @@ max-args = 10
 max-attributes = 15
 max-locals = 20
 
+[tool.pylint.miscellaneous]
+notes = ["FIXME", "XXX"]
+
 
 [tool.mypy]
 warn_unused_configs = true

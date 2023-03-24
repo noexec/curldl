@@ -180,7 +180,7 @@ def test_redirected_download(tmp_path: pathlib.Path, httpserver: HTTPServer) -> 
     assert read_file_content(tmp_path / 'file.txt') == b'x' * 4096
 
 
-@pytest.mark.parametrize('size, part_size', [(100, 50), (101, 0), (51, 51), (0, 0), (150, 200)])
+@pytest.mark.parametrize('size, part_size', [(100, 50), (101, 0), (51, 51), (51, 50), (0, 0), (150, 200)])
 @pytest.mark.parametrize('min_part_bytes', [0, 50, 51])
 @pytest.mark.parametrize('verify_file', [False, True])
 @pytest.mark.parametrize('timestamp', [1234567890, None])
@@ -211,11 +211,11 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
     os.truncate(tmp_path / 'file.bin.part', part_size)
     os.utime(tmp_path / 'file.bin.part', times=(partial_timestamp, partial_timestamp))
 
-    # Request #2 on partial file: generally fails with 503, which causes pycurl.error due to resume failure
+    # Request #2 on partial file: generally fails with 503
     # Rolls back to existing partial file if verification data is present
-    with pytest.raises(pycurl.error if verify_file and part_size > 0 else RuntimeError) as ex_info:
+    with pytest.raises(pycurl.error) as ex_info:
         download_and_possibly_verify()
-    assert isinstance(ex_info.value, RuntimeError) or ex_info.value.args[0] == pycurl.E_HTTP_RANGE_ERROR
+    assert ex_info.value.args[0] == pycurl.E_HTTP_RETURNED_ERROR
     httpserver.check()
 
     assert ((tmp_path / 'file.bin.part').exists() ==
@@ -225,21 +225,17 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
     assert not (tmp_path / 'file.bin').exists()
 
     # Request #3: should succeed unless weird conditions
-    if verify_file and part_size > size:
-        with pytest.raises(ValueError):
+    if verify_file and part_size >= size > 0:
+        with pytest.raises(pycurl.error):
             download_and_possibly_verify()
+        assert isinstance(httpserver.handler_errors[0], werkzeug.exceptions.RequestedRangeNotSatisfiable)
         httpserver.check_assertions()
         return
 
     download_and_possibly_verify()
-    if verify_file and part_size >= size > 0:
-        assert isinstance(httpserver.handler_errors[0], werkzeug.exceptions.RequestedRangeNotSatisfiable)
-        httpserver.clear_handler_errors()
     httpserver.check()
 
-    # NOTE: race condition if .part has the target file size, since 416 has no Last-Modified header
-    if part_size != size != 0:
-        assert os.stat(tmp_path / 'file.bin').st_mtime == (timestamp or BASE_TIMESTAMP + 2 * 10)
+    assert os.stat(tmp_path / 'file.bin').st_mtime == (timestamp or BASE_TIMESTAMP + 2 * 10)
     assert read_file_content(tmp_path / 'file.bin') == file_data
 
 
@@ -299,7 +295,7 @@ def test_aborted_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> 
         assert isinstance(hostname, str)
         url = f'http://{hostname}:{port}/path'
 
-        threading.Thread(target=httpd.handle_request).start()
+        threading.Thread(target=httpd.handle_request, daemon=True).start()
         with pytest.raises(pycurl.error) as ex_info:
             downloader.download(url, 'some-file.txt')
 
@@ -320,7 +316,7 @@ def test_partial_download_keep(tmp_path: pathlib.Path, httpserver: HTTPServer, c
         make_range_response_handler('/file.txt', b'y' * size))
 
     downloader = curldl.Downloader(basedir=tmp_path, verbose=True, retry_attempts=0, min_part_bytes=0,
-                                   min_always_keep_part_bytes=always_keep_part_size)
+                                   always_keep_part_bytes=always_keep_part_size)
     downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=(size if specify_size else None))
     httpserver.check()
 
@@ -328,3 +324,80 @@ def test_partial_download_keep(tmp_path: pathlib.Path, httpserver: HTTPServer, c
     assert read_file_content(tmp_path / 'file.txt') == ((b'x' * (size // 2) + b'y' * (size // 2))
                                                         if specify_size or always_keep_part_size <= size // 2
                                                         else b'y' * size)
+
+
+@pytest.mark.parametrize('scheme_str', ['file', 'gopher', 'https', 'ftp'])
+def test_disallowed_schemes(tmp_path: pathlib.Path, caplog: LogCaptureFixture, scheme_str: str) -> None:
+    """Verify disallowed schemes are rejected by PycURL"""
+    caplog.set_level(logging.DEBUG)
+
+    scheme = getattr(pycurl, 'PROTO_' + scheme_str.upper())
+    default_enabled = scheme in curldl.Downloader.DEFAULT_ALLOWED_PROTOCOLS
+    assert bool(curldl.Downloader(basedir=tmp_path)._allowed_protocols_bitmask  # pylint: disable=protected-access
+                & scheme) == default_enabled
+
+    downloader = curldl.Downloader(basedir=tmp_path, min_part_bytes=0, allowed_protocols_bitmask=
+                                   ((pycurl.PROTO_TFTP | pycurl.PROTO_DICT) if default_enabled else 0))
+    with pytest.raises(pycurl.error) as ex_info:
+        downloader.download(f'{scheme_str}://{"example.com" if scheme_str != "file" else ""}/test', 'test')
+
+    assert ex_info.value.args[0] == pycurl.E_UNSUPPORTED_PROTOCOL
+    assert not (tmp_path / 'test').exists()
+
+
+@pytest.mark.parametrize('disable_resume', [False, True])
+def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture,
+                                      mocker: MockerFixture, disable_resume: bool) -> None:
+    """Verify that a partial download via file:// URL is successful (or not) once FILE scheme is allowed"""
+    caplog.set_level(logging.DEBUG)
+    if disable_resume:
+        mocker.patch.object(curldl.Downloader, 'RESUME_FROM_SCHEMES', curldl.Downloader.RESUME_FROM_SCHEMES - {'file'})
+
+    with open(tmp_path / 'file.txt', 'wb') as file:
+        file.write(b'x' * 512)
+
+    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=pycurl.PROTO_FILE)
+    downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.out')
+    assert read_file_content(tmp_path / 'file.out') == b'x' * 512
+
+    with open(tmp_path / 'file.txt', 'wb') as file:
+        file.write(b'y' * 512)
+    os.rename(tmp_path / 'file.out', tmp_path / 'file.out.part')
+    os.truncate(tmp_path / 'file.out.part', 256)
+
+    downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.out', size=512)
+    assert read_file_content(tmp_path / 'file.out') == (b'y' if disable_resume else b'x') * 256 + b'y' * 256
+
+
+def test_file_scheme_unsuccessful_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> None:
+    """Verify that a non-HTTP error of allowed scheme does not confuse Downloader"""
+    caplog.set_level(logging.DEBUG)
+
+    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=pycurl.PROTO_FILE)
+    with pytest.raises(pycurl.error) as ex_info:
+        downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.txt')
+
+    assert ex_info.value.args[0] == pycurl.E_FILE_COULDNT_READ_FILE
+    assert not (tmp_path / 'txt').exists()
+
+
+def test_smtp_scheme_bailout(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> None:
+    """Verify that non-0 non-HTTP response code does not confuse Downloader"""
+    caplog.set_level(logging.DEBUG)
+    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=pycurl.PROTO_SMTP, retry_attempts=0)
+
+    class SMTPMockServer(socketserver.StreamRequestHandler):
+        """SMTP server that immediately sends a bad hello message"""
+        def handle(self) -> None:
+            """Sends a bad message that is reflected in curl's response status"""
+            self.wfile.write(b'555\r\n')
+            self.connection.shutdown(socket.SHUT_RDWR)
+
+    with socketserver.TCPServer(('localhost', 0), SMTPMockServer) as smtpd:
+        threading.Thread(target=smtpd.handle_request, daemon=True).start()
+        with pytest.raises(pycurl.error) as ex_info:
+            downloader.download(f'smtp://localhost:{smtpd.server_address[1]}/test', 'smtp.txt')
+        assert ex_info.value.args[0] == pycurl.E_FTP_WEIRD_SERVER_REPLY
+
+    assert not (tmp_path / 'smtp.txt').exists()
+    assert list(log_record for log_record in caplog.get_records('call') if '555:' in log_record.message)

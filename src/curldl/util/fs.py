@@ -61,7 +61,7 @@ class FileSystem:
         if not os.path.isfile(path):
             raise ValueError(f'Not a file: {path}')
         if path_size != size:
-            raise ValueError(f'Size mismatch for {path}: {path_size:,} instead of {size:,} bytes')
+            raise ValueError(f'Size mismatch for {path}: {path_size:,} instead of {size:,} B')
         log.debug('Successfully verified file size of %s', path)
 
     @staticmethod
