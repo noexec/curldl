@@ -204,13 +204,10 @@ class Downloader:
 
         def log_partial_download(message_prefix: str, *, error: pycurl.error | None = None) -> None:
             """Log information about partially downloaded file"""
-            log_level = logging.ERROR if error else logging.INFO
-            if not log.isEnabledFor(log_level):
-                return
-            code, descr = self._get_response_status(curl, url)
-            status = (f'{error.args[0]}: {error.args[1] or "No Description"} / ' if error else '') + f'{code}: {descr}'
-            log.log(log_level, message_prefix + f' {path} {initial_size:,} -> {os.path.getsize(path):,} B'
-                    f' ({status}) [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
+            if log.isEnabledFor(log_level := logging.ERROR if error else logging.INFO):
+                log.log(log_level, message_prefix + f' {path} {initial_size:,} -> {os.path.getsize(path):,} B'
+                        f' ({self._get_response_status(curl, url, error)})'
+                        f' [{Time.timestamp_delta(curl.getinfo(pycurl.TOTAL_TIME))}]')
 
         try:
             with open(path, 'ab') as path_stream, \
@@ -240,16 +237,19 @@ class Downloader:
         return path
 
     @classmethod
-    def _get_response_status(cls, curl: pycurl.Curl, url: str) -> tuple[int, str]:
-        """Retrieve HTTP response code and description from cURL.
-        Note that cURL returns 0 if response code is not ready yet."""
+    def _get_response_status(cls, curl: pycurl.Curl, url: str, error: pycurl.error | None) -> str:
+        """Format response code and description from cURL with a possible error"""
         scheme = cls._get_url_scheme(curl.getinfo(pycurl.EFFECTIVE_URL) or url)
-        descr = 'No Status Available'
+        descr = 'No Status'
         if code := curl.getinfo(pycurl.RESPONSE_CODE):
             descr = 'No Description'
             if scheme in ['http', 'https']:
-                descr = http.client.responses.get(code, 'Unknown Status')
-        return code, f'{scheme.upper()} {descr}'
+                descr = http.client.responses.get(code, 'Unknown HTTP Code')
+
+        error_status = ''
+        if error:
+            error_status = f'{error.args[0]}: {error.args[1] or "No Description"} / '
+        return f'{error_status}{code}: {scheme.upper()} {descr}'
 
     @staticmethod
     def _get_url_scheme(url: str) -> str:

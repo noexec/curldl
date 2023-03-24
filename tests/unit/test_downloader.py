@@ -333,7 +333,8 @@ def test_disallowed_schemes(tmp_path: pathlib.Path, caplog: LogCaptureFixture, s
 
     scheme = getattr(pycurl, 'PROTO_' + scheme_str.upper())
     default_enabled = scheme in curldl.Downloader.DEFAULT_ALLOWED_PROTOCOLS
-    assert bool(curldl.Downloader(basedir=tmp_path)._allowed_protocols_bitmask & scheme) == default_enabled
+    assert bool(curldl.Downloader(basedir=tmp_path)._allowed_protocols_bitmask  # pylint: disable=protected-access
+                & scheme) == default_enabled
 
     downloader = curldl.Downloader(basedir=tmp_path, min_part_bytes=0, allowed_protocols_bitmask=
                                    ((pycurl.PROTO_TFTP | pycurl.PROTO_DICT) if default_enabled else 0))
@@ -366,3 +367,37 @@ def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCapture
 
     downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.out', size=512)
     assert read_file_content(tmp_path / 'file.out') == (b'y' if disable_resume else b'x') * 256 + b'y' * 256
+
+
+def test_file_scheme_unsuccessful_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> None:
+    """Verify that a non-HTTP error of allowed scheme does not confuse Downloader"""
+    caplog.set_level(logging.DEBUG)
+
+    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=pycurl.PROTO_FILE)
+    with pytest.raises(pycurl.error) as ex_info:
+        downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.txt')
+
+    assert ex_info.value.args[0] == pycurl.E_FILE_COULDNT_READ_FILE
+    assert not (tmp_path / 'txt').exists()
+
+
+def test_smtp_scheme_bailout(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> None:
+    """Verify that non-0 non-HTTP response code does not confuse Downloader"""
+    caplog.set_level(logging.DEBUG)
+    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=pycurl.PROTO_SMTP, retry_attempts=0)
+
+    class SMTPMockServer(socketserver.StreamRequestHandler):
+        """SMTP server that immediately sends a bad hello message"""
+        def handle(self) -> None:
+            """Sends a bad message that is reflected in curl's response status"""
+            self.wfile.write(b'555\r\n')
+            self.connection.shutdown(socket.SHUT_RDWR)
+
+    with socketserver.TCPServer(('localhost', 0), SMTPMockServer) as smtpd:
+        threading.Thread(target=smtpd.handle_request).start()
+        with pytest.raises(pycurl.error) as ex_info:
+            downloader.download(f'smtp://localhost:{smtpd.server_address[1]}/test', 'smtp.txt')
+        assert ex_info.value.args[0] == pycurl.E_FTP_WEIRD_SERVER_REPLY
+
+    assert not (tmp_path / 'smtp.txt').exists()
+    assert list(log_record for log_record in caplog.get_records('call') if '555:' in log_record.message)
