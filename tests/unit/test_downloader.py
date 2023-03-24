@@ -28,13 +28,6 @@ from curldl import util
 BASE_TIMESTAMP = 1678901234
 
 
-class DisconnectingHTTPServer(http.server.BaseHTTPRequestHandler):
-    """HTTP Server that closes the connection after reading the request"""
-    def do_GET(self) -> None:   # pylint: disable=invalid-name
-        """Close connection without processing"""
-        self.connection.shutdown(socket.SHUT_RDWR)
-
-
 def compute_hex_digest(data: bytes, algo: str) -> str:
     """Compute digest for given input"""
     assert algo in hashlib.algorithms_available
@@ -290,6 +283,13 @@ def test_aborted_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> 
     caplog.set_level(logging.DEBUG)
     downloader = curldl.Downloader(basedir=tmp_path, verbose=True, retry_attempts=0)
 
+    class DisconnectingHTTPServer(http.server.BaseHTTPRequestHandler):
+        """HTTP Server that closes the connection after reading the request"""
+
+        def do_GET(self) -> None:  # pylint: disable=invalid-name
+            """Close connection without processing"""
+            self.connection.shutdown(socket.SHUT_RDWR)
+
     with socketserver.TCPServer(('localhost', 0), DisconnectingHTTPServer) as httpd:
         hostname, port = httpd.server_address
         assert isinstance(hostname, str)
@@ -406,3 +406,23 @@ def test_smtp_scheme_bailout(tmp_path: pathlib.Path, caplog: LogCaptureFixture, 
 
     assert not (tmp_path / 'smtp.txt').exists()
     assert list(log_record for log_record in caplog.get_records('call') if 'SMTP 555:' in log_record.message)
+
+
+def test_configuration_callback(tmp_path: pathlib.Path, httpserver: HTTPServer) -> None:
+    """Verify that configuration callback is invoked by Downloader and has effect"""
+    def curl_configuration_cb(curl: pycurl.Curl) -> None:
+        """Changes User-Agent header"""
+        curl.setopt(pycurl.USERAGENT, 'changed-user-agent')
+
+    def response_handler_cb(request: Request) -> Response:
+        """Returns 304 Not Modified response if timestamp is not newer than one in request"""
+        assert request.user_agent.string == 'changed-user-agent'
+        return Response(b'xyz')
+
+    httpserver.expect_oneshot_request('/abc').respond_with_handler(response_handler_cb)
+
+    downloader = curldl.Downloader(basedir=tmp_path, retry_attempts=0, curl_config_callback=curl_configuration_cb)
+    downloader.download(httpserver.url_for('/abc'), 'abc.txt')
+
+    httpserver.check()
+    assert read_file_content(tmp_path / 'abc.txt') == b'xyz'
