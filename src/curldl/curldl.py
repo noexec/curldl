@@ -249,12 +249,11 @@ class Downloader:
         if code := curl.getinfo(pycurl.RESPONSE_CODE):
             descr = 'No Description'
             if scheme in ['http', 'https']:
-                descr = http.client.responses.get(code, 'Unknown HTTP Code')
+                descr = http.client.responses.get(code, 'Unrecognized HTTP Status Code')
 
-        error_status = ''
-        if error:
-            error_status = f'{error.args[0]}: {error.args[1] or "No Description"} / '
-        return f'{error_status}{code}: {scheme.upper()} {descr}'
+        # pylint: disable=consider-using-f-string
+        error_descr = '{}: {} / '.format(error.args[0], error.args[1] or 'No Description') if error else ''
+        return '{}{} {}{}'.format(error_descr, scheme.upper(), f'{code}: ' if code else '', descr)
 
     @staticmethod
     def _get_url_scheme(url: str) -> str:
