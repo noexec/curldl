@@ -295,7 +295,7 @@ def test_aborted_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> 
         assert isinstance(hostname, str)
         url = f'http://{hostname}:{port}/path'
 
-        threading.Thread(target=httpd.handle_request).start()
+        threading.Thread(target=httpd.handle_request, daemon=True).start()
         with pytest.raises(pycurl.error) as ex_info:
             downloader.download(url, 'some-file.txt')
 
@@ -394,7 +394,7 @@ def test_smtp_scheme_bailout(tmp_path: pathlib.Path, caplog: LogCaptureFixture) 
             self.connection.shutdown(socket.SHUT_RDWR)
 
     with socketserver.TCPServer(('localhost', 0), SMTPMockServer) as smtpd:
-        threading.Thread(target=smtpd.handle_request).start()
+        threading.Thread(target=smtpd.handle_request, daemon=True).start()
         with pytest.raises(pycurl.error) as ex_info:
             downloader.download(f'smtp://localhost:{smtpd.server_address[1]}/test', 'smtp.txt')
         assert ex_info.value.args[0] == pycurl.E_FTP_WEIRD_SERVER_REPLY
