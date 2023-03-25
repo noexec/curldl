@@ -25,4 +25,4 @@ class Log:
         """Logging helper to trace an exception, including traceback at lower level"""
         log.error('%s: %s: %s', msg, exc.__class__.__name__, exc)
         if log.isEnabledFor(logging.DEBUG):
-            log.debug(''.join(traceback.format_exception(exc)).rstrip('\n'))
+            log.debug(''.join(traceback.format_exception(exc.__class__, value=exc, tb=exc.__traceback__)).rstrip('\n'))
