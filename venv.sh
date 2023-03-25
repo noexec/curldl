@@ -55,7 +55,12 @@ if [ "$1" = "install-venv" ]; then
     fi
 
     python_version=$(${python} -V)
-    ${python} -m venv --prompt "venv/${python_version#* }" "${venv_dir}"
+    upgrade_deps=
+    if ${python} -c 'import sys; sys.exit(not sys.version_info >= (3, 9))'; then
+        upgrade_deps=--upgrade-deps
+    fi
+
+    ${python} -m venv --prompt "venv/${python_version#* }" ${upgrade_deps} "${venv_dir}"
     . "${venv_dir}"/bin/activate
 
     pip install --use-pep517 --require-virtualenv "${script_dir}" "${script_dir}[test]" "${script_dir}[environment]"
