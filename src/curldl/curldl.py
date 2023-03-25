@@ -52,7 +52,8 @@ class Downloader:
     def __init__(self, basedir: str | os.PathLike[str], *, progress: bool = False, verbose: bool = False,
                  user_agent: str = 'curl', retry_attempts: int = 3, retry_wait_sec: int | float = 2,
                  timeout_sec: int | float = 120, max_redirects: int = 5, allowed_protocols_bitmask: int = 0,
-                 min_part_bytes: int = 64 * 1024, always_keep_part_bytes: int = 64 * 1024 ** 2) -> None:
+                 min_part_bytes: int = 64 * 1024, always_keep_part_bytes: int = 64 * 1024 ** 2,
+                 curl_config_callback: Callable[[pycurl.Curl], None] | None = None) -> None:
         """Initialize a PycURL-based downloader with a single pycurl.Curl instance
         that is reused and reconfigured for each download. The resulting downloader
         object should be therefore not shared between several threads."""
@@ -73,6 +74,7 @@ class Downloader:
         self._min_part_bytes = min_part_bytes
         self._always_keep_part_bytes = always_keep_part_bytes
 
+        self._curl_config_callback = curl_config_callback
         self._unconfigured_curl = pycurl.Curl()
 
     def _get_configured_curl(self, url: str, path: str, *,
@@ -112,6 +114,9 @@ class Downloader:
             curl.setopt(pycurl.TIMEVALUE, round(timestamp))
             curl.setopt(pycurl.TIMECONDITION, pycurl.TIMECONDITION_IFMODSINCE)
             log.debug('Will update %s if modified since %s', path, Time.timestamp_to_dt(timestamp))
+
+        if self._curl_config_callback:
+            self._curl_config_callback(curl)
 
         return curl, initial_size
 
@@ -244,12 +249,11 @@ class Downloader:
         if code := curl.getinfo(pycurl.RESPONSE_CODE):
             descr = 'No Description'
             if scheme in ['http', 'https']:
-                descr = http.client.responses.get(code, 'Unknown HTTP Code')
+                descr = http.client.responses.get(code, 'Unrecognized HTTP Status Code')
 
-        error_status = ''
-        if error:
-            error_status = f'{error.args[0]}: {error.args[1] or "No Description"} / '
-        return f'{error_status}{code}: {scheme.upper()} {descr}'
+        # pylint: disable=consider-using-f-string
+        error_descr = '{}: {} / '.format(error.args[0], error.args[1] or 'No Description') if error else ''
+        return '{}{} {}{}'.format(error_descr, scheme.upper(), f'{code}: ' if code else '', descr)
 
     @staticmethod
     def _get_url_scheme(url: str) -> str:

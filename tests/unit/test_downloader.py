@@ -28,13 +28,6 @@ from curldl import util
 BASE_TIMESTAMP = 1678901234
 
 
-class DisconnectingHTTPServer(http.server.BaseHTTPRequestHandler):
-    """HTTP Server that closes the connection after reading the request"""
-    def do_GET(self) -> None:   # pylint: disable=invalid-name
-        """Close connection without processing"""
-        self.connection.shutdown(socket.SHUT_RDWR)
-
-
 def compute_hex_digest(data: bytes, algo: str) -> str:
     """Compute digest for given input"""
     assert algo in hashlib.algorithms_available
@@ -290,6 +283,13 @@ def test_aborted_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> 
     caplog.set_level(logging.DEBUG)
     downloader = curldl.Downloader(basedir=tmp_path, verbose=True, retry_attempts=0)
 
+    class DisconnectingHTTPServer(http.server.BaseHTTPRequestHandler):
+        """HTTP Server that closes the connection after reading the request"""
+
+        def do_GET(self) -> None:  # pylint: disable=invalid-name
+            """Close connection without processing"""
+            self.connection.shutdown(socket.SHUT_RDWR)
+
     with socketserver.TCPServer(('localhost', 0), DisconnectingHTTPServer) as httpd:
         hostname, port = httpd.server_address
         assert isinstance(hostname, str)
@@ -346,8 +346,9 @@ def test_disallowed_schemes(tmp_path: pathlib.Path, caplog: LogCaptureFixture, s
 
 
 @pytest.mark.parametrize('disable_resume', [False, True])
-def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture,
-                                      mocker: MockerFixture, disable_resume: bool) -> None:
+@pytest.mark.parametrize('allowed_protocols', [pycurl.PROTO_FILE, pycurl.PROTO_ALL])
+def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture, mocker: MockerFixture,
+                                      disable_resume: bool, allowed_protocols: int) -> None:
     """Verify that a partial download via file:// URL is successful (or not) once FILE scheme is allowed"""
     caplog.set_level(logging.DEBUG)
     if disable_resume:
@@ -356,7 +357,7 @@ def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCapture
     with open(tmp_path / 'file.txt', 'wb') as file:
         file.write(b'x' * 512)
 
-    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=pycurl.PROTO_FILE)
+    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols)
     downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.out')
     assert read_file_content(tmp_path / 'file.out') == b'x' * 512
 
@@ -369,11 +370,13 @@ def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCapture
     assert read_file_content(tmp_path / 'file.out') == (b'y' if disable_resume else b'x') * 256 + b'y' * 256
 
 
-def test_file_scheme_unsuccessful_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> None:
+@pytest.mark.parametrize('allowed_protocols', [pycurl.PROTO_FILE | pycurl.PROTO_HTTPS, pycurl.PROTO_ALL])
+def test_file_scheme_unsuccessful_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture,
+                                           allowed_protocols: int) -> None:
     """Verify that a non-HTTP error of allowed scheme does not confuse Downloader"""
     caplog.set_level(logging.DEBUG)
 
-    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=pycurl.PROTO_FILE)
+    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols)
     with pytest.raises(pycurl.error) as ex_info:
         downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.txt')
 
@@ -381,10 +384,12 @@ def test_file_scheme_unsuccessful_download(tmp_path: pathlib.Path, caplog: LogCa
     assert not (tmp_path / 'txt').exists()
 
 
-def test_smtp_scheme_bailout(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> None:
+@pytest.mark.parametrize('allowed_protocols',
+                         [pycurl.PROTO_SMTP, pycurl.PROTO_SMTP | pycurl.PROTO_DICT, pycurl.PROTO_ALL])
+def test_smtp_scheme_bailout(tmp_path: pathlib.Path, caplog: LogCaptureFixture, allowed_protocols: int) -> None:
     """Verify that non-0 non-HTTP response code does not confuse Downloader"""
     caplog.set_level(logging.DEBUG)
-    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=pycurl.PROTO_SMTP, retry_attempts=0)
+    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols, retry_attempts=0)
 
     class SMTPMockServer(socketserver.StreamRequestHandler):
         """SMTP server that immediately sends a bad hello message"""
@@ -400,4 +405,24 @@ def test_smtp_scheme_bailout(tmp_path: pathlib.Path, caplog: LogCaptureFixture) 
         assert ex_info.value.args[0] == pycurl.E_FTP_WEIRD_SERVER_REPLY
 
     assert not (tmp_path / 'smtp.txt').exists()
-    assert list(log_record for log_record in caplog.get_records('call') if '555:' in log_record.message)
+    assert list(log_record for log_record in caplog.get_records('call') if 'SMTP 555:' in log_record.message)
+
+
+def test_configuration_callback(tmp_path: pathlib.Path, httpserver: HTTPServer) -> None:
+    """Verify that configuration callback is invoked by Downloader and has effect"""
+    def curl_configuration_cb(curl: pycurl.Curl) -> None:
+        """Changes User-Agent header"""
+        curl.setopt(pycurl.USERAGENT, 'changed-user-agent')
+
+    def response_handler_cb(request: Request) -> Response:
+        """Returns 304 Not Modified response if timestamp is not newer than one in request"""
+        assert request.user_agent.string == 'changed-user-agent'
+        return Response(b'xyz')
+
+    httpserver.expect_oneshot_request('/abc').respond_with_handler(response_handler_cb)
+
+    downloader = curldl.Downloader(basedir=tmp_path, retry_attempts=0, curl_config_callback=curl_configuration_cb)
+    downloader.download(httpserver.url_for('/abc'), 'abc.txt')
+
+    httpserver.check()
+    assert read_file_content(tmp_path / 'abc.txt') == b'xyz'
