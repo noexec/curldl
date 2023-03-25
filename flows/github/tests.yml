@@ -1,0 +1,39 @@
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+name: Tests with Coverage and Static Analysis
+
+on:
+    pull_request:
+    push:
+        branches:
+            - master
+            - develop
+            - 'release/**'
+            - '3-integrate-complete-package-publishing-cycle'
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                python-version: ["3.10"]
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v3
+              with:
+                  persist-credentials: false
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v4
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Installing dependencies
+              run: ./venv.sh install-venv
+
+            - name: Running tests with code coverage and pylint + mypy static analysis
+              run: ./venv.sh pytest
+
+            - name: Running security issues static analysis
+              run: ./venv.sh bandit -c pyproject.toml -r .
