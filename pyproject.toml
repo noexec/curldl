@@ -39,7 +39,7 @@ environment = [
     "pipdeptree",           # show packages dependency tree
     "pip-autoremove",       # remove unused package dependencies
     "pip-review",           # upgrade outdated packages
-    "wheel"                 # support PEP 517 installs
+    "wheel"                 # build system, support PEP 518 installs
 ]
 
 test = [

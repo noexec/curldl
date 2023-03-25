@@ -59,8 +59,9 @@ if [ "$1" = "install-venv" ]; then
     ${python} -m venv --upgrade-deps --prompt "venv/${python_version#* }" "${venv_dir}"
     . "${venv_dir}"/bin/activate
 
-    pip install --require-virtualenv '.' '.[test]' '.[environment]'
+    pip install --use-pep517 --require-virtualenv "${script_dir}" "${script_dir}[test]" "${script_dir}[environment]"
     pip uninstall -y --require-virtualenv ${package}
+    pip install -e "${script_dir}" --require-virtualenv
     exit
 fi
 
