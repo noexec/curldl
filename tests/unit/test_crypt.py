@@ -18,7 +18,7 @@ def test_get_available_digests() -> None:
         assert len(digest.digest()) == digest.digest_size > 0
         assert len(digest.hexdigest()) == digest.digest_size * 2
 
-    for algo in hashlib.algorithms_available - algos:
+    for algo in hashlib.algorithms_guaranteed - algos:
         digest = hashlib.new(algo)
         digest.update(b'test')
         with pytest.raises(TypeError):
