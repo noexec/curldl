@@ -23,18 +23,20 @@ jobs:
               with:
                   persist-credentials: false
 
+            - name: Install required Ubuntu packages
+              run: |
+                sudo -n apt update -y
+                sudo -n apt install -y libcurl4-openssl-dev
+
             - name: Set up Python ${{ matrix.python-version }}
               uses: actions/setup-python@v4
               with:
                   python-version: ${{ matrix.python-version }}
 
-            - name: Update Ubuntu packages index
-              run: sudo -n apt update -y
-
             - name: Installing dependencies
               run: ./venv.sh install-venv
 
-            - name: Running tests with code coverage and pylint + mypy static analysis
+            - name: Running tests with code coverage and pylint, mypy static analysis
               run: ./venv.sh pytest
 
             - name: Running security issues static analysis

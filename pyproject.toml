@@ -38,7 +38,8 @@ environment = [
     "ipython",              # interactive Python environment
     "pipdeptree",           # show packages dependency tree
     "pip-autoremove",       # remove unused package dependencies
-    "pip-review"            # upgrade outdated packages
+    "pip-review",           # upgrade outdated packages
+    "wheel"                 # support PEP 517 installs
 ]
 
 test = [

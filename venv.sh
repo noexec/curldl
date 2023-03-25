@@ -48,11 +48,11 @@ if [ "$1" = "install-venv" ]; then
         error "virtualenv is enabled or venv directory present"
     fi
     if ! ${python} -m ensurepip --version 1>/dev/null 2>&1; then
-        sudo -n apt install -y python3-venv
+        error "ensurepip is not available, run: sudo apt install python3-venv"
     fi
 
     if ! curl-config --version 1>/dev/null 2>&1; then
-        sudo -n apt install -y libcurl4-openssl-dev
+        error "curl-config is not available, run: sudo apt install libcurl4-openssl-dev"
     fi
 
     python_version=$(${python} -V)
