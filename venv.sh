@@ -42,14 +42,17 @@ export PYTHONWARNINGS="ignore::DeprecationWarning:pytest_sugar,\
     ignore::DeprecationWarning:pip._vendor.packaging.version,\
     ignore::DeprecationWarning:pip._vendor.packaging.specifiers"
 
-
 if [ "$1" = "install-venv" ]; then
     echo "Installing virtualenv..."
     if [ -e "${venv_dir}" ] || [ -n "${VIRTUAL_ENV}" ]; then
         error "virtualenv is enabled or venv directory present"
     fi
     if ! ${python} -m ensurepip --version 1>/dev/null 2>&1; then
-        error "ensurepip is not available, install with 'apt install python3-venv'"
+        sudo -n apt install -y python3-venv
+    fi
+
+    if ! curl-config --version 1>/dev/null 2>&1; then
+        sudo -n apt install -y libcurl4-openssl-dev
     fi
 
     python_version=$(${python} -V)

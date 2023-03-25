@@ -28,6 +28,9 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
 
+            - name: Update Ubuntu packages index
+              run: sudo -n apt update -y
+
             - name: Installing dependencies
               run: ./venv.sh install-venv
 
