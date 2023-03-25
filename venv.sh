@@ -4,7 +4,6 @@ set -e
 script_dir=${0%/*}
 script_name=${0##*/}
 venv_dir="${script_dir}"/venv
-src_dir="${script_dir}"/src
 
 python="python3"
 package="curldl"
@@ -72,5 +71,4 @@ if [ "$1" = "upgrade-venv" ]; then
 fi
 
 
-export PYTHONPATH="${src_dir}"
 exec "$@"
