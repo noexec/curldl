@@ -1,4 +1,6 @@
 """CLI entry point functional tests"""
+from __future__ import annotations
+
 import argparse
 import inspect
 import logging

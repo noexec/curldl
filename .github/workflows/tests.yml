@@ -7,6 +7,7 @@ on:
             - master
             - develop
             - 'release/**'
+            - 'ci-cd/**'
             - '3-integrate-complete-package-publishing-cycle'
 
 jobs:
@@ -15,7 +16,7 @@ jobs:
 
         strategy:
             matrix:
-                python-version: ["3.10"]
+                python-version: ["3.8", "3.9", "3.10", "3.11"]
 
         steps:
             - name: Check out repository
