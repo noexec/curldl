@@ -44,6 +44,12 @@ jobs:
             - name: Tests with code coverage and pylint, mypy static analysis
               run: ./venv.sh pytest
 
+            - name: Archive code coverage report
+              uses: actions/upload-artifact@v3
+              with:
+                  name: code-coverage-report-${{ github.job }}-${{ matrix.python-version }}
+                  path: build/tests/htmlcov/
+
             - name: Security issues static analysis
               run: ./venv.sh bandit -c pyproject.toml -r .
 
@@ -51,7 +57,9 @@ jobs:
               run: ./venv.sh downgrade-venv
 
             - name: Same tests on minimal required package versions
-              run: ./venv.sh pytest
+              run: |
+                  rm -r build/tests
+                  ./venv.sh pytest
 
     test-platform-packages:
         strategy:
