@@ -71,12 +71,12 @@ requires = ["setuptools", "wheel"]
 
 
 [tool.setuptools.package-data]
-"curldl" = ["py.typed"]     # PIP 561
+"curldl" = ["py.typed"]         # PIP 561
 
 
 [tool.pytest.ini_options]
 addopts = "--mypy --pylint --pylint-jobs 0 --cov --cov-report=term --cov-report=html"
-testpaths = ["tests", "src"]
+testpaths = ["tests", "src"]    # "src" required for pylint and mypy (whereas cov considers imported files)
 cache_dir = "build/tests/pytest_cache"
 
 filterwarnings = [

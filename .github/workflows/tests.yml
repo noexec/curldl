@@ -10,12 +10,12 @@ on:
             - 'workflow/**'
 
 jobs:
-    tests-virtualenv:
+    tests-linux-venv:
         strategy:
             matrix:
-                python-version: ["3.8", "3.9", "3.10", "3.11"]
+                python-version: ['3.11', '3.10', '3.9', '3.8', 'pypy3.9', 'pypy3.8']
 
-        name: Tests on CPython ${{ matrix.python-version }} / venv
+        name: Tests Linux / Python ${{ matrix.python-version }} / venv
         runs-on: ubuntu-latest
 
         steps:
@@ -27,7 +27,7 @@ jobs:
             - name: Install required Ubuntu packages
               run: |
                   sudo -n apt-get update -y
-                  sudo -n apt-get install -y libcurl4-openssl-dev
+                  sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
 
             - name: Set up Python ${{ matrix.python-version }}
               uses: actions/setup-python@v4
@@ -37,19 +37,23 @@ jobs:
             - name: Install package in editable mode and its dependencies
               run: ./venv.sh install-venv
 
+            - name: Disable static analysis coverage on PyPy
+              if: ${{ startsWith(matrix.python-version, 'pypy') }}
+              run: sed -i '/^addopts\>/s/^/#/' pyproject.toml
+
             - name: Tests with code coverage and pylint, mypy static analysis
               run: ./venv.sh pytest
 
             - name: Security issues static analysis
               run: ./venv.sh bandit -c pyproject.toml -r .
 
-    tests-vendor-packages:
+    tests-platform-packages:
         strategy:
             matrix:
-                vendor-image: [ubuntu-latest, ubuntu-20.04, ubuntu-18.04]
+                platform-image: [ubuntu-latest, ubuntu-20.04]
 
-        name: Tests on ${{ matrix.vendor-image }} / vendor
-        runs-on: ${{ matrix.vendor-image }}
+        name: Tests Linux / ${{ matrix.platform-image }} / platform
+        runs-on: ${{ matrix.platform-image }}
 
         steps:
             - name: Check out repository
@@ -57,20 +61,19 @@ jobs:
               with:
                   persist-credentials: false
 
-            - name: Install maximal subset of vendor Python packages
+            - name: Install maximal subset of platform Python packages
               run: |
                   sudo -n apt-get update -y
                   sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
                   sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,toml,werkzeug,wheel}
-                  sudo -n apt-get install -y python3-pytest-{cov,mock,pylint,xdist}
+                  sudo -n apt-get install -y python3-pytest-{cov,pylint,sugar,xdist}
                   sudo -n apt-get install -y python3-pytest-repeat || :
-                  sudo -n apt-get install -y python3-pytest-sugar || :
 
-            - name: Install package and its vendor-unavailable dependencies
+            - name: Install package and its platform-unavailable dependencies
               run: |
                   pip3 install --user -U pip
                   pip3 install --user --use-pep517 '.[test]'
                   find src -mindepth 1 -delete
 
             - name: Tests with essentially no static analysis
-              run: pytest-3
+              run: pytest-3 --no-cov

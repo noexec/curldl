@@ -7,6 +7,7 @@ venv_dir="${script_dir}"/venv
 
 python="python3"
 package="curldl"
+pycurl_pypy_version="7.44.1"
 
 
 error()
@@ -54,26 +55,28 @@ if [ "$1" = "install-venv" ]; then
         error "curl-config is not available, run: sudo apt install libcurl4-openssl-dev"
     fi
 
-    python_version=$(${python} -V)
-    upgrade_deps=
-    if ${python} -c 'import sys; sys.exit(not sys.version_info >= (3, 9))'; then
-        upgrade_deps=--upgrade-deps
-    fi
+    python_version=$(${python} -c 'import sys; print(sys.version.split()[0])')
+    upgrade_deps=$(${python} -c 'import sys; sys.version_info >= (3, 9) and print("--upgrade-deps")')
 
-    ${python} -m venv --prompt "venv/${python_version#* }" ${upgrade_deps} "${venv_dir}"
+    ${python} -m venv --prompt "venv/${python_version}" ${upgrade_deps} "${venv_dir}"
     . "${venv_dir}"/bin/activate
 
-    pip install -U --require-virtualenv pip
-    pip install --use-pep517 --require-virtualenv "${script_dir}[test,environment]"
-    pip uninstall -y --require-virtualenv ${package}
-    pip install -e "${script_dir}" --require-virtualenv
+    pip --require-virtualenv install -U pip
+
+    if ${python} --version | grep -q "PyPy"; then
+        pip --require-virtualenv install --use-pep517 "pycurl==${pycurl_pypy_version}"
+    fi
+
+    pip --require-virtualenv install --use-pep517 "${script_dir}[test,environment]"
+    pip --require-virtualenv uninstall -y ${package}
+    pip --require-virtualenv install -e "${script_dir}"
     exit
 fi
 
 
 if [ "$1" = "upgrade-venv" ]; then
     echo "Upgrading virtualenv..."
-    exec pip-review --auto --require-virtualenv
+    exec pip-review --require-virtualenv --auto
 fi
 
 
