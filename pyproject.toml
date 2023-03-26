@@ -28,18 +28,16 @@ classifiers = [
 
 requires-python = ">=3.8"
 dependencies = [
-    "pycurl",               # PycURL wrapper for cURL library
-    "tenacity",             # retry policies
-    "tqdm"                  # console progress bar
+    "pycurl>=7.44.0",       # PycURL wrapper for cURL library
+    "tenacity>=6.2.0",      # retry policies
+    "tqdm>=4.50.0"          # console progress bar
 ]
 
 [project.optional-dependencies]
-environment = [
-    "ipython",              # interactive Python environment
-    "pipdeptree",           # show packages dependency tree
-    "pip-autoremove",       # remove unused package dependencies
-    "pip-review",           # upgrade outdated packages
-    "wheel"                 # build system, support PEP 518 installs
+minimal = [
+    "pycurl==7.44.0",       # need CURLINFO_CONDITION_UNMET
+    "tenacity==6.2.0",      # need type hinting and no-warnings asyncio
+    "tqdm==4.50.0"          # need colour parameter
 ]
 
 test = [
@@ -57,6 +55,14 @@ test = [
     "types-pycurl",         # external type annotations: pycurl
     "types-toml",           # external type annotations: toml
     "types-tqdm"            # external type annotations: tqdm
+]
+
+environment = [
+    "ipython",              # interactive Python environment
+    "pipdeptree",           # show packages dependency tree
+    "pip-autoremove",       # remove unused package dependencies
+    "pip-review",           # upgrade outdated packages
+    "wheel"                 # build system, support PEP 518 installs
 ]
 
 [project.urls]

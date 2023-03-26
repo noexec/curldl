@@ -18,7 +18,7 @@ error()
 
 
 if [ $# = 0 ]; then
-    error "${script_name} install-venv | upgrade-venv | <command> <args>..."
+    error "${script_name} install-venv | upgrade-venv | downgrade-venv | <command> <args>..."
 fi
 
 if [ -e "${venv_dir}" ]; then
@@ -68,6 +68,14 @@ if [ "$1" = "install-venv" ]; then
     fi
 
     pip --require-virtualenv install --use-pep517 "${script_dir}[test,environment]"
+    pip --require-virtualenv uninstall -y ${package}
+    pip --require-virtualenv install -e "${script_dir}"
+    exit
+fi
+
+
+if [ "$1" = "downgrade-venv" ]; then
+    pip --require-virtualenv install --use-pep517 --force-reinstall "${script_dir}[minimal]"
     pip --require-virtualenv uninstall -y ${package}
     pip --require-virtualenv install -e "${script_dir}"
     exit

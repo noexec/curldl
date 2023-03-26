@@ -47,6 +47,12 @@ jobs:
             - name: Security issues static analysis
               run: ./venv.sh bandit -c pyproject.toml -r .
 
+            - name: Reinstall minimal required package versions
+              run: ./venv.sh downgrade-venv
+
+            - name: Same tests on minimal required package versions
+              run: ./venv.sh pytest
+
     test-platform-packages:
         strategy:
             matrix:
@@ -64,6 +70,7 @@ jobs:
             - name: Install maximal subset of platform Python packages
               run: |
                   sudo -n apt-get update -y
+                  sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
                   sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
                   sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,toml,werkzeug,wheel}
                   sudo -n apt-get install -y python3-pytest-{cov,pylint,sugar,xdist}
