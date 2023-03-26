@@ -38,13 +38,15 @@ jobs:
               run: ./venv.sh install-venv
 
             - name: Disable static analysis coverage on PyPy
-              if: ${{ startsWith(matrix.python-version, 'pypy') }}
+              if: startsWith(matrix.python-version, 'pypy')
               run: sed -i '/^addopts\>/s/^/#/' pyproject.toml
 
             - name: Tests with code coverage and pylint, mypy static analysis
+              id: test
               run: ./venv.sh pytest
 
             - name: Archive code coverage report
+              if: (success() || steps.test.conclusion == 'failure') && !startsWith(matrix.python-version, 'pypy')
               uses: actions/upload-artifact@v3
               with:
                   name: code-coverage-report-${{ github.job }}-${{ matrix.python-version }}

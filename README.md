@@ -1,3 +1,5 @@
+[![Tests with Coverage and Static Analysis](https://github.com/noexec/curldl/actions/workflows/tests.yml/badge.svg)](https://github.com/noexec/curldl/actions/workflows/tests.yml)
+
 # curldl
 
 __curldl__ safely and reliably downloads files with PycURL.
