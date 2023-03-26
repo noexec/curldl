@@ -10,12 +10,13 @@ on:
             - 'workflow/**'
 
 jobs:
-    tests:
-        runs-on: ubuntu-latest
-
+    tests-virtualenv:
         strategy:
             matrix:
                 python-version: ["3.8", "3.9", "3.10", "3.11"]
+
+        name: Tests on CPython ${{ matrix.python-version }} / venv
+        runs-on: ubuntu-latest
 
         steps:
             - name: Check out repository
@@ -25,19 +26,51 @@ jobs:
 
             - name: Install required Ubuntu packages
               run: |
-                sudo -n apt update -y
-                sudo -n apt install -y libcurl4-openssl-dev
+                  sudo -n apt-get update -y
+                  sudo -n apt-get install -y libcurl4-openssl-dev
 
             - name: Set up Python ${{ matrix.python-version }}
               uses: actions/setup-python@v4
               with:
                   python-version: ${{ matrix.python-version }}
 
-            - name: Installing dependencies
+            - name: Install package in editable mode and its dependencies
               run: ./venv.sh install-venv
 
-            - name: Running tests with code coverage and pylint, mypy static analysis
+            - name: Tests with code coverage and pylint, mypy static analysis
               run: ./venv.sh pytest
 
-            - name: Running security issues static analysis
+            - name: Security issues static analysis
               run: ./venv.sh bandit -c pyproject.toml -r .
+
+    tests-vendor-packages:
+        strategy:
+            matrix:
+                vendor-image: [ubuntu-latest, ubuntu-20.04, ubuntu-18.04]
+
+        name: Tests on ${{ matrix.vendor-image }} / vendor
+        runs-on: ${{ matrix.vendor-image }}
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v3
+              with:
+                  persist-credentials: false
+
+            - name: Install maximal subset of vendor Python packages
+              run: |
+                  sudo -n apt-get update -y
+                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
+                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,toml,werkzeug,wheel}
+                  sudo -n apt-get install -y python3-pytest-{cov,mock,pylint,xdist}
+                  sudo -n apt-get install -y python3-pytest-repeat || :
+                  sudo -n apt-get install -y python3-pytest-sugar || :
+
+            - name: Install package and its vendor-unavailable dependencies
+              run: |
+                  pip3 install --user -U pip
+                  pip3 install --user --use-pep517 '.[test]'
+                  find src -mindepth 1 -delete
+
+            - name: Tests with essentially no static analysis
+              run: pytest-3

@@ -61,7 +61,7 @@ def make_range_response_handler(path: str, data: bytes, *, statuses: list[bool] 
         response = Response(data, mimetype='application/octet-stream')
         sent_timestamp = timestamp if timestamp is not None else BASE_TIMESTAMP + status_idx * 10
         response.last_modified = util.Time.timestamp_to_dt(sent_timestamp)
-        return response.make_conditional(request, accept_ranges=True, complete_length=len(data))
+        return response.make_conditional(request.environ, accept_ranges=True, complete_length=len(data))
 
     return range_response_handler_cb
 
