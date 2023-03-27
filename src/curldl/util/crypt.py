@@ -16,7 +16,7 @@ class Cryptography:
     @staticmethod
     def get_available_digests() -> list[str]:
         """Returns lists of fixed-size digest algorithms in hashlib"""
-        return sorted(algo for algo in hashlib.algorithms_available
+        return sorted(algo for algo in hashlib.algorithms_guaranteed
                       if hashlib.new(algo).digest_size != 0)
 
     @classmethod

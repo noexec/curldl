@@ -157,7 +157,8 @@ def test_verify_bad_size_and_digests(tmp_path: pathlib.Path, algos: list[str]) -
 
     last_algo = tuple(digests.keys())[-1]
     with pytest.raises(ValueError):
-        FileSystem.verify_size_and_digests(tmp_file_path, digests=digests | {last_algo + 'x': digests[last_algo]})
+        FileSystem.verify_size_and_digests(tmp_file_path,
+                                           digests=dict(digests, **{last_algo + 'x': digests[last_algo]}))
 
     digests[last_algo] = digests[last_algo][:-1] + '0'
     with pytest.raises(ValueError):

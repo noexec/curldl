@@ -28,17 +28,16 @@ classifiers = [
 
 requires-python = ">=3.8"
 dependencies = [
-    "pycurl",               # PycURL wrapper for cURL library
-    "tenacity",             # retry policies
-    "tqdm"                  # console progress bar
+    "pycurl>=7.44.0",       # PycURL wrapper for cURL library
+    "tenacity>=6.2.0",      # retry policies
+    "tqdm>=4.50.0"          # console progress bar
 ]
 
 [project.optional-dependencies]
-environment = [
-    "ipython",              # interactive Python environment
-    "pipdeptree",           # show packages dependency tree
-    "pip-autoremove",       # remove unused package dependencies
-    "pip-review"            # upgrade outdated packages
+minimal = [
+    "pycurl==7.44.0",       # need CURLINFO_CONDITION_UNMET
+    "tenacity==6.2.0",      # need type hinting and no-warnings asyncio
+    "tqdm==4.50.0"          # need colour parameter
 ]
 
 test = [
@@ -58,6 +57,14 @@ test = [
     "types-tqdm"            # external type annotations: tqdm
 ]
 
+environment = [
+    "ipython",              # interactive Python environment
+    "pipdeptree",           # show packages dependency tree
+    "pip-autoremove",       # remove unused package dependencies
+    "pip-review",           # upgrade outdated packages
+    "wheel"                 # build system, support PEP 518 installs
+]
+
 [project.urls]
 repository = "https://github.com/noexec/curldl"
 
@@ -70,13 +77,12 @@ requires = ["setuptools", "wheel"]
 
 
 [tool.setuptools.package-data]
-"curldl" = ["py.typed"]     # PIP 561
+"curldl" = ["py.typed"]         # PIP 561
 
 
 [tool.pytest.ini_options]
 addopts = "--mypy --pylint --pylint-jobs 0 --cov --cov-report=term --cov-report=html"
-pythonpath = ["src"]
-testpaths = ["tests", "src"]
+testpaths = ["tests", "src"]    # "src" required for pylint and mypy (whereas cov considers imported files)
 cache_dir = "build/tests/pytest_cache"
 
 filterwarnings = [

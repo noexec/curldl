@@ -4,10 +4,10 @@ set -e
 script_dir=${0%/*}
 script_name=${0##*/}
 venv_dir="${script_dir}"/venv
-src_dir="${script_dir}"/src
 
 python="python3"
 package="curldl"
+pycurl_pypy_version="7.44.1"
 
 
 error()
@@ -18,7 +18,7 @@ error()
 
 
 if [ $# = 0 ]; then
-    error "${script_name} install-venv | upgrade-venv | <command> <args>..."
+    error "${script_name} install-venv | upgrade-venv | downgrade-venv | <command> <args>..."
 fi
 
 if [ -e "${venv_dir}" ]; then
@@ -42,31 +42,50 @@ export PYTHONWARNINGS="ignore::DeprecationWarning:pytest_sugar,\
     ignore::DeprecationWarning:pip._vendor.packaging.version,\
     ignore::DeprecationWarning:pip._vendor.packaging.specifiers"
 
-
 if [ "$1" = "install-venv" ]; then
     echo "Installing virtualenv..."
     if [ -e "${venv_dir}" ] || [ -n "${VIRTUAL_ENV}" ]; then
         error "virtualenv is enabled or venv directory present"
     fi
     if ! ${python} -m ensurepip --version 1>/dev/null 2>&1; then
-        error "ensurepip is not available, install with 'apt install python3-venv'"
+        error "ensurepip is not available, run: sudo apt install python3-venv"
     fi
 
-    python_version=$(${python} -V)
-    ${python} -m venv --upgrade-deps --prompt "venv/${python_version#* }" "${venv_dir}"
+    if ! curl-config --version 1>/dev/null 2>&1; then
+        error "curl-config is not available, run: sudo apt install libcurl4-openssl-dev"
+    fi
+
+    python_version=$(${python} -c 'import sys; print(sys.version.split()[0])')
+    upgrade_deps=$(${python} -c 'import sys; sys.version_info >= (3, 9) and print("--upgrade-deps")')
+
+    ${python} -m venv --prompt "venv/${python_version}" ${upgrade_deps} "${venv_dir}"
     . "${venv_dir}"/bin/activate
 
-    pip install --require-virtualenv '.' '.[test]' '.[environment]'
-    pip uninstall -y --require-virtualenv ${package}
+    pip --require-virtualenv install -U pip
+
+    if ${python} --version | grep -q "PyPy"; then
+        pip --require-virtualenv install --use-pep517 "pycurl==${pycurl_pypy_version}"
+    fi
+
+    pip --require-virtualenv install --use-pep517 "${script_dir}[test,environment]"
+    pip --require-virtualenv uninstall -y ${package}
+    pip --require-virtualenv install -e "${script_dir}"
+    exit
+fi
+
+
+if [ "$1" = "downgrade-venv" ]; then
+    pip --require-virtualenv install --use-pep517 --force-reinstall "${script_dir}[minimal]"
+    pip --require-virtualenv uninstall -y ${package}
+    pip --require-virtualenv install -e "${script_dir}"
     exit
 fi
 
 
 if [ "$1" = "upgrade-venv" ]; then
     echo "Upgrading virtualenv..."
-    exec pip-review --auto --require-virtualenv
+    exec pip-review --require-virtualenv --auto
 fi
 
 
-export PYTHONPATH="${src_dir}"
 exec "$@"
