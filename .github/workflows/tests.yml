@@ -11,6 +11,7 @@ on:
 
 jobs:
     test-linux-venv:
+        if: ${{ false }}
         strategy:
             matrix:
                 python-version: ['3.11', '3.10', '3.9', '3.8', 'pypy3.9', 'pypy3.8']
@@ -63,7 +64,33 @@ jobs:
                   rm -r build/tests
                   ./venv.sh pytest
 
+    test-windows-venv:
+        strategy:
+            matrix:
+                python-version: ['3.11', '3.8']
+                architecture: ['x64', 'x86']
+
+        name: Test Windows / Python ${{ matrix.python-version }}-${{ matrix.architecture }} / venv
+        runs-on: windows-latest
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v3
+              with:
+                  persist-credentials: false
+
+            - name: Set up Python ${{ matrix.python-version }}-${{ matrix.architecture }}
+              uses: actions/setup-python@v4
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  architecture: ${{ matrix.architecture }}
+
+            - name: Install package in editable mode and its dependencies
+              shell: sh
+              run: ./venv.sh
+
     test-platform-packages:
+        if: ${{ false }}
         strategy:
             matrix:
                 platform-image: [ubuntu-latest, ubuntu-20.04]
@@ -96,6 +123,7 @@ jobs:
               run: pytest-3 --no-cov
 
     test-dependency-sanity:
+        if: ${{ false }}
         name: Test Sanity on Linux / platform
         runs-on: ubuntu-latest
 

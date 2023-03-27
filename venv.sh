@@ -9,6 +9,23 @@ python="python3"
 package="curldl"
 pycurl_pypy_version="7.44.1"
 
+pycurl_win_x64_3_11="gohlke/pycurl-7.45.1-cp311-cp311-win_amd64.whl"
+pycurl_win_x86_3_11="gohlke/pycurl-7.45.1-cp311-cp311-win32.whl"
+pycurl_win_x64_3_8="gohlke/pycurl-7.45.1-cp38-cp38-win_amd64.whl"
+pycurl_win_x86_3_8="gohlke/pycurl-7.45.1-cp38-cp38-win32.whl"
+
+# How to upload these files to actions?
+# sys.implementation.name -> cpython, pypy, ...
+# sys.platform -> win32
+# sys.maxsize -> ...
+
+uname -a
+type py || :
+type python3 || :
+python3 --version || :
+python3 -c "import sys; print(sys.implementation.name, sys.platform, sys.maxsize.bit_length()+1)"
+exit
+
 
 error()
 {
@@ -61,7 +78,7 @@ if [ "$1" = "install-venv" ]; then
     ${python} -m venv --prompt "venv/${python_version}" ${upgrade_deps} "${venv_dir}"
     . "${venv_dir}"/bin/activate
 
-    pip --require-virtualenv install -U pip
+    ${python} -m pip --require-virtualenv install -U pip
 
     if ${python} --version | grep -q "PyPy"; then
         pip --require-virtualenv install --use-pep517 "pycurl==${pycurl_pypy_version}"
