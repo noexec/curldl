@@ -2,29 +2,17 @@
 set -e
 
 script_dir=${0%/*}
+[ "${script_dir}" != "$0" ] || script_dir=.
 script_name=${0##*/}
 venv_dir="${script_dir}"/venv
+extras_dir="${script_dir}"/extra/gohlke
 
-python="python3"
+python="python3"    # non-venv and venv interpreter name
+pip="pip --require-virtualenv"
 package="curldl"
-pycurl_pypy_version="7.44.1"
 
-pycurl_win_x64_3_11="gohlke/pycurl-7.45.1-cp311-cp311-win_amd64.whl"
-pycurl_win_x86_3_11="gohlke/pycurl-7.45.1-cp311-cp311-win32.whl"
-pycurl_win_x64_3_8="gohlke/pycurl-7.45.1-cp38-cp38-win_amd64.whl"
-pycurl_win_x86_3_8="gohlke/pycurl-7.45.1-cp38-cp38-win32.whl"
-
-# How to upload these files to actions?
-# sys.implementation.name -> cpython, pypy, ...
-# sys.platform -> win32
-# sys.maxsize -> ...
-
-uname -a
-type py || :
-type python3 || :
-python3 --version || :
-python3 -c "import sys; print(sys.implementation.name, sys.platform, sys.maxsize.bit_length()+1)"
-exit
+pycurl_pypy_compatible_version="7.44.1"
+pycurl_win32_build_version="7.45.1"
 
 
 error()
@@ -33,13 +21,22 @@ error()
     exit 1
 }
 
+activate_venv()
+{
+    if [ -d "${venv_dir}"/bin ]; then
+        . "${venv_dir}"/bin/activate
+    else
+        . "${venv_dir}"/Scripts/activate
+    fi
+}
+
 
 if [ $# = 0 ]; then
     error "${script_name} install-venv | upgrade-venv | downgrade-venv | <command> <args>..."
 fi
 
 if [ -e "${venv_dir}" ]; then
-    . "${venv_dir}"/bin/activate
+    activate_venv
 elif [ "$1" != "install-venv" ]; then
     error "virtualenv environment not found at ${venv_dir}"
 fi
@@ -68,40 +65,50 @@ if [ "$1" = "install-venv" ]; then
         error "ensurepip is not available, run: sudo apt install python3-venv"
     fi
 
-    if ! curl-config --version 1>/dev/null 2>&1; then
+    python_platform=$(${python} -c 'import sys; print(sys.platform)')
+    if [ "${python_platform}" != "win32" ] && ! curl-config --version 1>/dev/null 2>&1; then
         error "curl-config is not available, run: sudo apt install libcurl4-openssl-dev"
     fi
 
     python_version=$(${python} -c 'import sys; print(sys.version.split()[0])')
     upgrade_deps=$(${python} -c 'import sys; sys.version_info >= (3, 9) and print("--upgrade-deps")')
-
     ${python} -m venv --prompt "venv/${python_version}" ${upgrade_deps} "${venv_dir}"
-    . "${venv_dir}"/bin/activate
+    activate_venv
 
-    ${python} -m pip --require-virtualenv install -U pip
+    ${python} -m ${pip} install -U pip
 
-    if ${python} --version | grep -q "PyPy"; then
-        pip --require-virtualenv install --use-pep517 "pycurl==${pycurl_pypy_version}"
+    python_implementation=$(${python} -c 'import sys; print(sys.implementation.name)')
+    if [ "${python_platform}" = "win32" ]; then
+
+        python_short_version=$(echo "${python_version}" | cut -d. -f1-2 --output-delimiter=)
+        python_bits=$(${python} -c 'import sys; print(sys.maxsize.bit_length()+1)')
+        pycurl_build_suffix="win"
+        [ "${python_bits}" = 32 ] || pycurl_build_suffix=${pycurl_build_suffix}_amd
+
+        ${pip} install --use-pep517 "${extras_dir}/pycurl-${pycurl_win32_build_version}-cp${python_short_version}-cp${python_short_version}-${pycurl_build_suffix}${python_bits}.whl"
+
+    elif [ "${python_implementation}" = "pypy" ]; then
+        ${pip} install --use-pep517 "pycurl==${pycurl_pypy_compatible_version}"
     fi
 
-    pip --require-virtualenv install --use-pep517 "${script_dir}[test,environment]"
-    pip --require-virtualenv uninstall -y ${package}
-    pip --require-virtualenv install -e "${script_dir}"
+    ${pip} install --use-pep517 "${script_dir}[test,environment]"
+    ${pip} uninstall -y ${package}
+    ${pip} install -e "${script_dir}"
     exit
 fi
 
 
 if [ "$1" = "downgrade-venv" ]; then
-    pip --require-virtualenv install --use-pep517 --force-reinstall "${script_dir}[minimal]"
-    pip --require-virtualenv uninstall -y ${package}
-    pip --require-virtualenv install -e "${script_dir}"
+    ${pip} install --use-pep517 --force-reinstall "${script_dir}[minimal]"
+    ${pip} uninstall -y ${package}
+    ${pip} install -e "${script_dir}"
     exit
 fi
 
 
 if [ "$1" = "upgrade-venv" ]; then
     echo "Upgrading virtualenv..."
-    exec pip-review --require-virtualenv --auto
+    exec pip-review ${pip#* } --auto
 fi
 
 

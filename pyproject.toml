@@ -37,8 +37,8 @@ dependencies = [
 minimal = [
     "pycurl==7.44.0",       # need CURLINFO_CONDITION_UNMET
     "tenacity==6.2.0",      # need type hinting and no-warnings asyncio
-    "tqdm==4.50.0",         # need colour parameter
-    "six==1.9.0"            # minimum dependency of tenacity
+    "tqdm==4.50.0",         # need colour parameter (also requires colorama on win32)
+    "six==1.9.0"            # minimum dependency of tenacity (on non-win32)
 ]
 
 test = [

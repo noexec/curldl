@@ -11,10 +11,11 @@ on:
 
 jobs:
     test-linux-venv:
-        if: ${{ false }}
         strategy:
             matrix:
                 python-version: ['3.11', '3.10', '3.9', '3.8', 'pypy3.9', 'pypy3.8']
+
+        if: false
 
         name: Test Linux / Python ${{ matrix.python-version }} / venv
         runs-on: ubuntu-latest
@@ -90,10 +91,11 @@ jobs:
               run: ./venv.sh
 
     test-platform-packages:
-        if: ${{ false }}
         strategy:
             matrix:
                 platform-image: [ubuntu-latest, ubuntu-20.04]
+
+        if: false
 
         name: Test Linux / ${{ matrix.platform-image }} / platform
         runs-on: ${{ matrix.platform-image }}
@@ -123,7 +125,8 @@ jobs:
               run: pytest-3 --no-cov
 
     test-dependency-sanity:
-        if: ${{ false }}
+        if: false
+
         name: Test Sanity on Linux / platform
         runs-on: ubuntu-latest
 
