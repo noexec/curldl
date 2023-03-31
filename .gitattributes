@@ -6,6 +6,3 @@ assets/**      export-ignore
 
 # Enforce Unix line endings in repo and checkout
 * text=auto eol=lf
-
-# LFS-tracked file patterns
-*.whl filter=lfs diff=lfs merge=lfs -text

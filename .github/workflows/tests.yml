@@ -32,11 +32,11 @@ jobs:
         runs-on: ${{ matrix.platform }}-latest
 
         steps:
-            - name: Check out repository with LFS
+            - name: Check out repository and assets
               uses: actions/checkout@v3
               with:
                   persist-credentials: false
-                  lfs: true
+                  submodules: recursive
 
             - name: Install required Ubuntu packages
               if: ${{ matrix.platform == 'ubuntu' }}

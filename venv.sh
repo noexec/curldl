@@ -5,7 +5,7 @@ script_dir=${0%/*}
 [ "${script_dir}" != "$0" ] || script_dir=.
 script_name=${0##*/}
 venv_dir="${script_dir}/venv"
-extras_dir="${script_dir}/extra/gohlke"
+assets_dir="${script_dir}/assets/gohlke"
 
 python="python3"                # non-venv and venv interpreter name
 pip="pip --require-virtualenv"  # used only in venv
@@ -85,7 +85,7 @@ if [ "$1" = "install-venv" ]; then
         pycurl_build_suffix="win"
         [ "${python_bits}" = 32 ] || pycurl_build_suffix=${pycurl_build_suffix}_amd
 
-        ${pip} install --use-pep517 "${extras_dir}/pycurl-${pycurl_win32_build_version}-cp${python_short_version}-cp${python_short_version}-${pycurl_build_suffix}${python_bits}.whl"
+        ${pip} install --use-pep517 "${assets_dir}/pycurl-${pycurl_win32_build_version}-cp${python_short_version}-cp${python_short_version}-${pycurl_build_suffix}${python_bits}.whl"
 
     elif [ "${python_implementation}" = "pypy" ]; then
         ${pip} install --use-pep517 "pycurl==${pycurl_pypy_compatible_version}"
