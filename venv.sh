@@ -4,11 +4,11 @@ set -e
 script_dir=${0%/*}
 [ "${script_dir}" != "$0" ] || script_dir=.
 script_name=${0##*/}
-venv_dir="${script_dir}"/venv
-extras_dir="${script_dir}"/extra/gohlke
+venv_dir="${script_dir}/venv"
+extras_dir="${script_dir}/extra/gohlke"
 
-python="python3"    # non-venv and venv interpreter name
-pip="pip --require-virtualenv"
+python="python3"                # non-venv and venv interpreter name
+pip="pip --require-virtualenv"  # used only in venv
 package="curldl"
 
 pycurl_pypy_compatible_version="7.44.1"
@@ -71,16 +71,16 @@ if [ "$1" = "install-venv" ]; then
     fi
 
     python_version=$(${python} -c 'import sys; print(sys.version.split()[0])')
-    upgrade_deps=$(${python} -c 'import sys; sys.version_info >= (3, 9) and print("--upgrade-deps")')
-    ${python} -m venv --prompt "venv/${python_version}" ${upgrade_deps} "${venv_dir}"
+    ${python} -m venv --symlinks --prompt "venv/${python_version}" "${venv_dir}"
     activate_venv
 
-    ${python} -m ${pip} install -U pip
+    # venv --upgrade-deps is available from Python 3.9.0
+    ${python} -m pip --require-virtualenv install -U pip setuptools
 
     python_implementation=$(${python} -c 'import sys; print(sys.implementation.name)')
     if [ "${python_platform}" = "win32" ]; then
 
-        python_short_version=$(echo "${python_version}" | cut -d. -f1-2 --output-delimiter=)
+        python_short_version=$(${python} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
         python_bits=$(${python} -c 'import sys; print(sys.maxsize.bit_length()+1)')
         pycurl_build_suffix="win"
         [ "${python_bits}" = 32 ] || pycurl_build_suffix=${pycurl_build_suffix}_amd
@@ -108,7 +108,7 @@ fi
 
 if [ "$1" = "upgrade-venv" ]; then
     echo "Upgrading virtualenv..."
-    exec pip-review ${pip#* } --auto
+    exec pip-review --require-virtualenv --auto
 fi
 
 
