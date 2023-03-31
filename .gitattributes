@@ -1,1 +1,11 @@
+# Files to ignore on git archive
+.gitattributes export-ignore
+.gitignore     export-ignore
+.github/       export-ignore
+extra/**       export-ignore
+
+# Enforce Unix line endings in repo and checkout
+* text=auto eol=lf
+
+# LFS-tracked file patterns
 *.whl filter=lfs diff=lfs merge=lfs -text
