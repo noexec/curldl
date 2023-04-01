@@ -358,7 +358,7 @@ def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCapture
         file.write(b'x' * 512)
 
     downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols)
-    downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.out')
+    downloader.download((tmp_path / 'file.txt').absolute().as_uri(), 'file.out')
     assert read_file_content(tmp_path / 'file.out') == b'x' * 512
 
     with open(tmp_path / 'file.txt', 'wb') as file:
@@ -366,7 +366,7 @@ def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCapture
     os.rename(tmp_path / 'file.out', tmp_path / 'file.out.part')
     os.truncate(tmp_path / 'file.out.part', 256)
 
-    downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.out', size=512)
+    downloader.download((tmp_path / 'file.txt').absolute().as_uri(), 'file.out', size=512)
     assert read_file_content(tmp_path / 'file.out') == (b'y' if disable_resume else b'x') * 256 + b'y' * 256
 
 
@@ -378,7 +378,7 @@ def test_file_scheme_unsuccessful_download(tmp_path: pathlib.Path, caplog: LogCa
 
     downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols)
     with pytest.raises(pycurl.error) as ex_info:
-        downloader.download('file://' + str((tmp_path / 'file.txt').absolute()), 'file.txt')
+        downloader.download((tmp_path / 'file.txt').absolute().as_uri(), 'file.txt')
 
     assert ex_info.value.args[0] == pycurl.E_FILE_COULDNT_READ_FILE
     assert not (tmp_path / 'txt').exists()

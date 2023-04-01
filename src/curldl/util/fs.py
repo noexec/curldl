@@ -21,6 +21,7 @@ class FileSystem:
         path = os.path.abspath(os.path.join(basedir, rel_path))
         base_real, path_real = os.path.realpath(base), os.path.realpath(path)
 
+        # os.path.commonpath() also raises ValueError for different-drive paths on Windows
         if base != os.path.commonpath((base, path)):
             raise ValueError(f'Relative path {rel_path} escapes base path {base}')
         if base_real != os.path.commonpath((base_real, path_real)):

@@ -10,55 +10,78 @@ on:
             - 'workflow/**'
 
 jobs:
-    test-linux-venv:
+    test-venv:
         strategy:
             matrix:
                 python-version: ['3.11', '3.10', '3.9', '3.8', 'pypy3.9', 'pypy3.8']
+                platform: [ubuntu, windows]
+                architecture: [x64, x86]
+                exclude:
+                    - platform: ubuntu
+                      architecture: x86
+                    - platform: windows
+                      python-version: '3.10'
+                    - platform: windows
+                      python-version: '3.9'
+                    - platform: windows
+                      python-version: 'pypy3.9'
+                    - platform: windows
+                      python-version: 'pypy3.8'
 
-        name: Test Linux / Python ${{ matrix.python-version }} / venv
-        runs-on: ubuntu-latest
+        name: Test Python ${{ matrix.python-version }}-${{ matrix.platform }}-${{ matrix.architecture }} / venv
+        runs-on: ${{ matrix.platform }}-latest
 
         steps:
-            - name: Check out repository
+            - name: Check out repository and assets
               uses: actions/checkout@v3
               with:
                   persist-credentials: false
+                  submodules: recursive
 
             - name: Install required Ubuntu packages
+              if: ${{ matrix.platform == 'ubuntu' }}
               run: |
                   sudo -n apt-get update -y
                   sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
 
-            - name: Set up Python ${{ matrix.python-version }}
+            - name: Set up Python ${{ matrix.python-version }}-${{ matrix.architecture }}
               uses: actions/setup-python@v4
               with:
                   python-version: ${{ matrix.python-version }}
+                  architecture: ${{ matrix.architecture }}
 
             - name: Install package in editable mode and its dependencies
+              shell: sh
               run: ./venv.sh install-venv
 
             - name: Disable static analysis coverage on PyPy
               if: startsWith(matrix.python-version, 'pypy')
-              run: sed -i '/^addopts\>/s/^/#/' pyproject.toml
+              run: sed -i "/^addopts\>/s/^/#/" pyproject.toml
 
-            - name: Tests with code coverage and pylint, mypy static analysis
+            - name: Tests with code coverage and pylint + mypy static analysis
               id: test
+              shell: sh
               run: ./venv.sh pytest
 
             - name: Archive code coverage report
               if: (success() || steps.test.conclusion == 'failure') && !startsWith(matrix.python-version, 'pypy')
               uses: actions/upload-artifact@v3
               with:
-                  name: code-coverage-report-${{ github.job }}-${{ matrix.python-version }}
+                  name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}-${{ matrix.architecture }}
                   path: build/tests/htmlcov/
 
             - name: Security issues static analysis
+              shell: sh
               run: ./venv.sh bandit -c pyproject.toml -r .
 
             - name: Reinstall minimal required package versions
+              if: ${{ matrix.platform != 'windows' }}
+              shell: sh
               run: ./venv.sh downgrade-venv
 
-            - name: Same tests on minimal required package versions
+            - name: Same tests as before, on minimal required package versions
+              if: ${{ matrix.platform != 'windows' }}
+              shell: sh
               run: |
                   rm -r build/tests
                   ./venv.sh pytest

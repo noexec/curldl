@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os.path
 import pathlib
+import sys
 from contextlib import contextmanager
 from typing import Iterator
 
@@ -33,6 +34,16 @@ def current_working_directory(path: str | os.PathLike[str]) -> Iterator[None]:
         os.chdir(cwd)
 
 
+def make_os_independent_path(path: str) -> str:
+    """Make a path OS-independent (converts slashes if necessary)"""
+    if path.endswith('/'):
+        return str(pathlib.PurePath(path) / '@')[:-1]
+    return str(pathlib.PurePath(path))
+
+
+np = make_os_independent_path
+
+
 @pytest.mark.parametrize('rel_path', ['file.txt', 'dir1/dir2/file.txt', 'dir/../file', '../{}/dir1/../dir2/file.txt'])
 @pytest.mark.parametrize('create_file', [False, True])
 def test_verify_rel_path_is_safe(tmp_path: pathlib.Path, rel_path: str, create_file: bool) -> None:
@@ -42,12 +53,12 @@ def test_verify_rel_path_is_safe(tmp_path: pathlib.Path, rel_path: str, create_f
         create_simple_file(tmp_path / rel_path_exp, 128, create_dirs=True)
 
     FileSystem.verify_rel_path_is_safe(tmp_path, pathlib.Path(rel_path_exp))
-    FileSystem.verify_rel_path_is_safe(str(tmp_path), rel_path_exp)
+    FileSystem.verify_rel_path_is_safe(str(tmp_path), np(rel_path_exp))
 
-    FileSystem.verify_rel_path_is_safe('/', rel_path.format('../../../..'))
+    FileSystem.verify_rel_path_is_safe(np('/'), np(rel_path.format('../../../..')))
     with current_working_directory(tmp_path):
-        FileSystem.verify_rel_path_is_safe('.', pathlib.Path(rel_path_exp))
-        FileSystem.verify_rel_path_is_safe('./test', rel_path.format('test'))
+        FileSystem.verify_rel_path_is_safe(np('.'), pathlib.Path(rel_path_exp))
+        FileSystem.verify_rel_path_is_safe(np('./test'), np(rel_path.format('test')))
 
 
 @pytest.mark.parametrize('rel_path', ['../file.txt', '/file', 'dir/', '.', '..', '/', '', '../{}/../../dir2/file.txt'])
@@ -56,7 +67,7 @@ def test_verify_rel_path_is_unsafe(tmp_path: pathlib.Path, rel_path: str, base_d
     """Verify arbitrary unsafe relative paths"""
     if not base_dir_exists:
         tmp_path = tmp_path / 'no_such_directory'
-    rel_path = rel_path.format(tmp_path.name)
+    rel_path = np(rel_path.format(tmp_path.name))
     with pytest.raises(ValueError):
         FileSystem.verify_rel_path_is_safe(tmp_path, rel_path)
 
@@ -76,7 +87,7 @@ def test_verify_symlink_is_safe(tmp_path: pathlib.Path,
     base_path, file_path, link_path = tmp_path / base_dir, tmp_path / rel_file, tmp_path / rel_link
     file_path.parent.mkdir(parents=True, exist_ok=True)
     link_path.parent.mkdir(parents=True, exist_ok=True)
-    link_path.symlink_to((link_path.parent / link_content).absolute() if abs_link else link_content)
+    link_path.symlink_to((link_path.parent / link_content).absolute() if abs_link else np(link_content))
 
     with pytest.raises(ValueError):
         FileSystem.verify_rel_path_is_safe(base_path, link_path)
@@ -90,15 +101,16 @@ def test_verify_symlink_is_safe(tmp_path: pathlib.Path,
                           ('dir1/dir2', 'dir1/file.txt', 'dir1/dir2/link.txt', '../file.txt'),
                           ('dir1', 'dir1/file.txt', 'dir2/link.txt', '../dir1/file.txt'),
                           ('dir1/dir2', 'dir1/file.txt', 'dir1/dir2/link.txt', '../../dir1/file.txt'),
-                          ('/', 'file.txt', 'link.txt', '/dev/null'),
-                          ('dir1', 'dir1/file.txt', 'dir1/link.txt', '../dir2/../dir1/file.txt')])
+                          ('/', 'file.txt', 'link.txt', os.path.devnull),
+                          (('dir1', 'dir1/file.txt', 'dir1/link.txt', '../dir2/../dir1/file.txt')
+                           if sys.platform != 'win32' else ('/', 'file.txt', 'link.txt', 'Q:/file.txt'))])
 def test_verify_rel_symlink_is_unsafe(tmp_path: pathlib.Path,
                                       base_dir: str, rel_file: str, rel_link: str, link_content: str) -> None:
     """Verify unsafe relative symlinks"""
     base_path, file_path, link_path = tmp_path / base_dir, tmp_path / rel_file, tmp_path / rel_link
     file_path.parent.mkdir(parents=True, exist_ok=True)
     link_path.parent.mkdir(parents=True, exist_ok=True)
-    link_path.symlink_to(link_content)
+    link_path.symlink_to(np(link_content))
     create_simple_file(file_path, 5)
     with pytest.raises(ValueError):
         FileSystem.verify_rel_path_is_safe(base_path, link_path)
@@ -120,7 +132,7 @@ def test_create_directory_for_bad_path(tmp_path: pathlib.Path) -> None:
     file1_path = tmp_path / 'dir1' / 'file1.txt'
     file2_path = file1_path / 'dir2' / 'file2.txt'
     create_simple_file(file1_path, 0, create_dirs=True)
-    with pytest.raises(NotADirectoryError):
+    with pytest.raises(NotADirectoryError if sys.platform != 'win32' else FileNotFoundError):
         FileSystem.create_directory_for_path(file2_path)
 
 

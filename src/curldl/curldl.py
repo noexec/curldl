@@ -194,8 +194,8 @@ class Downloader:
             os.remove(path_partial)
             raise
 
-        log.debug('Renaming %s to %s', path_partial, path)
-        os.rename(path_partial, path)
+        log.debug('Moving %s to %s', path_partial, path)
+        os.replace(path_partial, path)
 
     def _download_partial(self, url: str, path: str, *,
                           timestamp: int | float | None = None, description: str | None = None) -> None:
