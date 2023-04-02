@@ -1,4 +1,4 @@
-# PEP 518, 621
+# PEP 518/517, 621
 
 [project]
 name = "curldl"
@@ -57,11 +57,13 @@ test = [
 ]
 
 environment = [
-    "ipython",                  # interactive Python environment
-    "pipdeptree",               # show packages dependency tree
-    "pip-autoremove",           # remove unused package dependencies
-    "pip-review",               # upgrade outdated packages
-    "wheel"                     # build system, support PEP 518 installs
+    "build",                # packaging build frontend
+    "ipython",              # interactive Python environment
+    "pipdeptree",           # show packages dependency tree
+    "pip-autoremove",       # remove unused package dependencies
+    "pip-review",           # upgrade outdated packages
+    "twine",                # PyPI package publishing
+    "wheel"                 # build system, support PEP 518 installs
 ]
 
 [project.urls]
@@ -73,6 +75,7 @@ curldl = "curldl.cli:main"
 
 [build-system]
 requires = ["setuptools>=45", "setuptools-scm[toml]>=6.2", "wheel"]
+build-backend = "setuptools.build_meta"
 
 
 [tool.setuptools.package-data]
