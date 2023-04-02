@@ -6,12 +6,11 @@ import inspect
 import logging
 import os.path
 import pathlib
-import subprocess   # nosec
+import subprocess  # nosec
 import sys
 from importlib import metadata
 
 import pytest
-import toml
 from _pytest.capture import CaptureFixture
 from _pytest.logging import LogCaptureFixture
 from pytest_httpserver import HTTPServer
@@ -53,7 +52,7 @@ def test_run_cli_module(arguments: str, should_succeed: bool) -> None:
 @pytest.mark.parametrize('use_metadata', [True, False])
 def test_get_version(mocker: MockerFixture, capsys: CaptureFixture[str], argument: str, use_metadata: bool) -> None:
     """Verify version number is correctly retrieved from both package and TOML sources"""
-    mock_version = '1.0.0-mock'
+    mock_version = '1.0.0.mock'
 
     def metadata_version_mock(distribution_name: str) -> str:
         assert distribution_name == PACKAGE_NAME
@@ -61,19 +60,18 @@ def test_get_version(mocker: MockerFixture, capsys: CaptureFixture[str], argumen
             return mock_version
         raise metadata.PackageNotFoundError
 
-    def toml_load_mock(file_path: str) -> dict[str, dict[str, str]]:
-        assert file_path.endswith('pyproject.toml')
-        return {'project': {'version': mock_version}}
-
     patch_system_environment(mocker, [argument])
     mocker.patch.object(metadata, 'version', metadata_version_mock)
-    mocker.patch.object(toml, 'load', toml_load_mock)
 
-    with pytest.raises(SystemExit) as ex_info:
+    with pytest.raises(SystemExit if use_metadata else metadata.PackageNotFoundError) as ex_info:
         cli.main()
-    assert ex_info.value.code == 0
+
     outputs = capsys.readouterr()
-    assert outputs.out == f'{PACKAGE_NAME} {mock_version}\n' and not outputs.err
+    if use_metadata:
+        assert isinstance(ex_info.value, SystemExit) and ex_info.value.code == 0
+        assert outputs.out == f'{PACKAGE_NAME} {mock_version}\n' and not outputs.err
+    else:
+        assert not outputs.out
 
 
 @pytest.mark.parametrize('specify_output_size_and_digest', [False, True])

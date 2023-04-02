@@ -6,7 +6,6 @@ import sys
 import urllib.parse
 from importlib import metadata
 
-import curldl
 from curldl import Downloader
 from curldl.util import Log, Cryptography
 
@@ -89,13 +88,12 @@ class CommandLine:
 
     @staticmethod
     def _get_package_version() -> str:
-        """Retrieve package version from metadata, with support for uninstalled development sources"""
+        """Retrieve package version from metadata, raising error for uninstalled development sources"""
         try:
             return metadata.version(__package__)
         except metadata.PackageNotFoundError:
-            import toml     # pylint: disable=import-outside-toplevel
-            pyproject = os.path.join(curldl.ROOT_DIR, os.path.pardir, os.path.pardir, 'pyproject.toml')
-            return str(toml.load(pyproject)['project']['version'])
+            log.error('Generated version not available, install package as usual or in editable mode')
+            raise
 
 
 def main() -> object:

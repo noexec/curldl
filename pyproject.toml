@@ -2,7 +2,7 @@
 
 [project]
 name = "curldl"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Safely and reliably download files with PycURL"
 keywords = ["cURL", "PycURL", "download"]
 
@@ -41,28 +41,27 @@ minimal = [
 ]
 
 test = [
-    "bandit[toml]",         # security issues checks
-    "pytest",               # pytest testing framework
-    "pytest-cov",           # code coverage (--cov)
-    "pytest-httpserver",    # HTTP server fixture
-    "pytest-mock",          # mocker fixtures for monkey patching
-    "pytest-mypy",          # type hinting verifier (--mypy)
-    "pytest-pylint",        # static code analysis (--pylint)
-    "pytest-repeat",        # repeating tests (@pytest.mark.repeat)
-    "pytest-sugar",         # look-and-feel for pytest progress
-    "pytest-xdist[psutil]", # distributed tests (-n logical --no-pylint)
-    "toml",                 # reading project.version from this file
-    "types-pycurl",         # external type annotations: pycurl
-    "types-toml",           # external type annotations: toml
-    "types-tqdm"            # external type annotations: tqdm
+    "bandit[toml]",                 # security issues checks
+    "pytest",                       # pytest testing framework
+    "pytest-cov",                   # code coverage (--cov)
+    "pytest-httpserver",            # HTTP server fixture
+    "pytest-mock",                  # mocker fixtures for monkey patching
+    "pytest-mypy",                  # type hinting verifier (--mypy)
+    "pytest-pylint",                # static code analysis (--pylint)
+    "pytest-repeat",                # repeating tests (@pytest.mark.repeat)
+    "pytest-sugar",                 # look-and-feel for pytest progress
+    "pytest-xdist[psutil]",         # distributed tests (-n logical --no-pylint)
+    "setuptools-scm[toml]>=6.2",    # git tags-based versioning in editable install
+    "types-pycurl",                 # external type annotations: pycurl
+    "types-tqdm"                    # external type annotations: tqdm
 ]
 
 environment = [
-    "ipython",              # interactive Python environment
-    "pipdeptree",           # show packages dependency tree
-    "pip-autoremove",       # remove unused package dependencies
-    "pip-review",           # upgrade outdated packages
-    "wheel"                 # build system, support PEP 518 installs
+    "ipython",                  # interactive Python environment
+    "pipdeptree",               # show packages dependency tree
+    "pip-autoremove",           # remove unused package dependencies
+    "pip-review",               # upgrade outdated packages
+    "wheel"                     # build system, support PEP 518 installs
 ]
 
 [project.urls]
@@ -73,11 +72,15 @@ curldl = "curldl.cli:main"
 
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=45", "setuptools-scm[toml]>=6.2", "wheel"]
 
 
 [tool.setuptools.package-data]
 "curldl" = ["py.typed"]         # PIP 561
+
+
+[tool.setuptools_scm]
+write_to = "src/curldl/_version.py"
 
 
 [tool.pytest.ini_options]
@@ -94,6 +97,7 @@ filterwarnings = [
 
 [tool.pylint.main]
 py-version = "3.8"
+ignore-paths = ["src/curldl/_version.py"]
 
 [tool.pylint.format]
 expected-line-ending-format = "LF"
