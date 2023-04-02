@@ -110,22 +110,16 @@ jobs:
                   sudo -n apt-get install -y python3-pytest-{cov,pylint,sugar,xdist}
                   sudo -n apt-get install -y python3-pytest-repeat || :
 
-            - name: Install package and its platform-unavailable dependencies
-              run: |
-                  pip3 install --user -U pip
-                  pip3 install --user --use-pep517 '.[test]'
-
             - name: Download package distribution
               uses: actions/download-artifact@v3
               with:
                 name: curldl-dist
                 path: dist
 
-            - name: Install package wheel
+            - name: Install package wheel and its platform-unavailable dependencies
               run: |
-                  pip3 uninstall -y curldl
                   find src -mindepth 1 -delete
-                  pip3 install --user dist/curldl-*.whl
+                  pip3 install --user $(echo dist/curldl-*.whl)'[test]'
 
             - name: Tests with essentially no static analysis
               run: pytest-3 --no-cov
@@ -177,7 +171,7 @@ jobs:
               with:
                   python-version: '3.11'
 
-            - name: Install package in editable mode and its dependencies
+            - name: Install package in editable mode (temporarily) and its dependencies
               run: ./venv.sh install-venv
 
             - name: Build the package sdist + wheel and install wheel
@@ -192,7 +186,7 @@ jobs:
                   ./venv.sh curldl -V
                   ./venv.sh pytest --no-cov
 
-            - name: Upload build results as artifact
+            - name: Upload build as artifact
               uses: actions/upload-artifact@v3
               with:
                   name: curldl-dist
