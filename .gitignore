@@ -5,6 +5,9 @@
 # Python environment
 /venv/
 
+# setuptools-scm generated version
+src/curldl/_version.py
+
 # Python cache
 __pycache__/
 *.pyc
