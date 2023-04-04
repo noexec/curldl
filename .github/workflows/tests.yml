@@ -8,6 +8,10 @@ on:
             - develop
             - 'release/**'
             - 'workflow/**'
+        tags:
+            - 'v*'
+    schedule:
+        - cron: '0 3 * * *'
 
 jobs:
     test-venv:
@@ -91,7 +95,8 @@ jobs:
             matrix:
                 platform-image: [ubuntu-latest, ubuntu-20.04]
 
-        name: Test Linux / ${{ matrix.platform-image }} / platform
+        name: Test Linux / ${{ matrix.platform-image }} / platform / wheel
+        needs: build-dist
         runs-on: ${{ matrix.platform-image }}
 
         steps:
@@ -109,17 +114,49 @@ jobs:
                   sudo -n apt-get install -y python3-pytest-{cov,pylint,sugar,xdist}
                   sudo -n apt-get install -y python3-pytest-repeat || :
 
-            - name: Install package and its platform-unavailable dependencies
+            - name: Download package distribution
+              uses: actions/download-artifact@v3
+              with:
+                name: curldl-dist
+                path: dist
+
+            - name: Install package wheel and its platform-unavailable dependencies
               run: |
-                  pip3 install --user -U pip
-                  pip3 install --user --use-pep517 '.[test]'
                   find src -mindepth 1 -delete
+                  pip3 install --user $(echo dist/curldl-*.whl)'[test]'
 
             - name: Tests with essentially no static analysis
               run: pytest-3 --no-cov
 
     test-dependency-sanity:
-        name: Test Sanity on Linux / platform
+        name: Test sanity on Linux / platform / wheel
+        needs: build-dist
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Install minimal subset of platform Python packages
+              run: |
+                  sudo -n apt-get update -y
+                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
+
+            - name: Download package distribution
+              uses: actions/download-artifact@v3
+              with:
+                name: curldl-dist
+                path: dist
+
+            - name: Install package wheel
+              run: |
+                  pip3 install --user dist/curldl-*.whl
+
+            - name: Sanity tests for package availability
+              run: |
+                  curldl -h
+                  curldl -V
+                  curldl -vpo test.html https://github.com/
+
+    build-dist:
+        name: Build and test the package / venv / wheel
         runs-on: ubuntu-latest
 
         steps:
@@ -127,20 +164,59 @@ jobs:
               uses: actions/checkout@v3
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
-            - name: Install minimal subset of platform Python packages
+            - name: Install required Ubuntu packages
               run: |
                   sudo -n apt-get update -y
-                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
+                  sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
 
-            - name: Install package and clean out repository files
-              run: |
-                  pip3 install --user -U pip
-                  pip3 install --user --use-pep517 --no-deps .
-                  find . -mindepth 1 -delete
+            - name: Set up latest Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: '3.11'
 
-            - name: Sanity tests for package availability
+            - name: Install package in editable mode (temporarily) and its dependencies
+              run: ./venv.sh install-venv
+
+            - name: Build the package sdist + wheel and install wheel
               run: |
-                  curldl -h
-                  curldl -V
-                  curldl -vpo test.html https://github.com/
+                  ./venv.sh pip uninstall -y curldl
+                  ./venv.sh python -m build
+                  find src -mindepth 1 -delete
+                  ./venv.sh pip install dist/curldl-*.whl
+
+            - name: Tests with essentially no static analysis
+              run: |
+                  ./venv.sh curldl -V
+                  ./venv.sh pytest --no-cov
+
+            - name: Upload build as artifact
+              uses: actions/upload-artifact@v3
+              with:
+                  name: curldl-dist
+                  path: dist/
+
+    publish-test-pypi:
+        name: Publish package on PyPI
+        needs: [build-dist, test-venv, test-platform-packages, test-dependency-sanity]
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Download package distribution
+              uses: actions/download-artifact@v3
+              with:
+                  name: curldl-dist
+                  path: dist
+
+            - name: Publish distribution to Test PyPI
+              uses: pypa/gh-action-pypi-publish@release/v1
+              with:
+                  password: ${{ secrets.TEST_PYPI_CURLDL_TOKEN }}
+                  repository-url: https://test.pypi.org/legacy/
+
+            - name: Publish distribution to PyPI
+              if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+              uses: pypa/gh-action-pypi-publish@release/v1
+              with:
+                  password: ${{ secrets.PYPI_CURLDL_TOKEN }}
