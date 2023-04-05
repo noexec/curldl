@@ -67,7 +67,9 @@ environment = [
 ]
 
 [project.urls]
-repository = "https://github.com/noexec/curldl"
+"Homepage" = "https://github.com/noexec/curldl"
+"Documentation" = "https://pypi.org/project/curldl/"
+"Bug Tracker" = "https://github.com/noexec/curldl/issues"
 
 [project.scripts]
 curldl = "curldl.cli:main"
