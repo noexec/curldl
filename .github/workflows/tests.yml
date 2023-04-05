@@ -90,6 +90,39 @@ jobs:
                   rm -r build/tests
                   ./venv.sh pytest
 
+
+    test-conda:
+        strategy:
+            matrix:
+                python-version: ['3.10', '3.8']
+                architecture: [x64, x86]
+                exclude:
+                    - python-version: '3.10'
+                      architecture: x86
+
+        name: Test Windows / Python ${{ matrix.python-version }}-${{ matrix.architecture }} / miniconda
+        runs-on: windows-latest
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v3
+              with:
+                  persist-credentials: false
+
+            - name: Set up Miniconda with Python ${{ matrix.python-version }}-${{ matrix.architecture }}
+              uses: conda-incubator/setup-miniconda@v2
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  architecture: ${{ matrix.architecture }}
+                  show-channel-urls: true
+
+            - name: Conda info
+              run: conda info
+
+            - name: Conda list
+              run: conda list
+
+
     test-platform-packages:
         strategy:
             matrix:
@@ -128,6 +161,7 @@ jobs:
             - name: Tests with essentially no static analysis
               run: pytest-3 --no-cov
 
+
     test-dependency-sanity:
         name: Test sanity on Linux / platform / wheel
         needs: build-dist
@@ -154,6 +188,7 @@ jobs:
                   curldl -h
                   curldl -V
                   curldl -vpo test.html https://github.com/
+
 
     build-dist:
         name: Build and test the package / venv / wheel
@@ -197,10 +232,11 @@ jobs:
                   name: curldl-dist
                   path: dist/
 
+
     publish-test-pypi:
         name: Publish package on PyPI
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        needs: [build-dist, test-venv, test-platform-packages, test-dependency-sanity]
+        needs: [build-dist, test-venv, test-conda, test-platform-packages, test-dependency-sanity]
         runs-on: ubuntu-latest
 
         steps:
