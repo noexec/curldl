@@ -114,6 +114,7 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   architecture: ${{ matrix.architecture }}
+                  miniconda-version: latest
                   show-channel-urls: true
 
             - name: Conda info
@@ -253,7 +254,7 @@ jobs:
                   repository-url: https://test.pypi.org/legacy/
 
             - name: Publish distribution to PyPI
-              if: !contains(github.ref, 'dev')
+              if: (!contains(github.ref, 'dev'))
               uses: pypa/gh-action-pypi-publish@release/v1
               with:
                   password: ${{ secrets.PYPI_CURLDL_TOKEN }}
