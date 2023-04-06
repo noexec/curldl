@@ -20,6 +20,7 @@ import curldl
 from curldl import cli
 
 PACKAGE_NAME = curldl.__package__
+ENTRY_POINT = PACKAGE_NAME
 
 
 def patch_system_environment(mocker: MockerFixture, arguments: list[str]) -> None:
@@ -35,11 +36,13 @@ def patch_logger_config(mocker: MockerFixture, expected_log_level: str) -> None:
     mocker.patch.object(logging, 'basicConfig', logging_basic_config_mock)
 
 
+@pytest.mark.parametrize('use_entry_point', [False, True])
 @pytest.mark.parametrize('arguments, should_succeed', [('-h', True), ('--help', True), ('--no-such-argument', False)])
-def test_run_cli_module(arguments: str, should_succeed: bool) -> None:
-    """Verify that running the module via __main__.py works, test success and failure"""
+def test_run_cli_module(use_entry_point: bool, arguments: str, should_succeed: bool) -> None:
+    """Verify that running the module via entry point and via __main__.py works, test success and failure"""
     package_base_path = pathlib.Path(inspect.getfile(curldl)).parent / os.path.pardir
-    result = subprocess.run(f'python -m {PACKAGE_NAME} {arguments}'.split(),    # nosec
+    command = ENTRY_POINT if use_entry_point else f'python -m {PACKAGE_NAME}'
+    result = subprocess.run(f'{command} {arguments}'.split(),   # nosec
                             check=False, text=True, encoding='ascii', capture_output=True,
                             env=dict(os.environ, PYTHONPATH=str(package_base_path)))
     assert (result.returncode == 0) == should_succeed

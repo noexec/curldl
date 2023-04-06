@@ -228,9 +228,7 @@ jobs:
                   ./venv.sh pip install dist/curldl-*.whl
 
             - name: Tests with minimal static analysis
-              run: |
-                  ./venv.sh curldl -V
-                  ./venv.sh pytest --no-cov
+              run: ./venv.sh pytest --no-cov
 
             - name: Upload build artifact
               uses: actions/upload-artifact@v3
