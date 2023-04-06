@@ -94,10 +94,10 @@ jobs:
     test-conda:
         strategy:
             matrix:
-                python-version: ['3.10', '3.8']
+                python-version: ['3.11', '3.8']
                 architecture: [x64, x86]
                 exclude:
-                    - python-version: '3.10'
+                    - python-version: '3.11'
                       architecture: x86
 
         name: Test Windows / Python ${{ matrix.python-version }}-${{ matrix.architecture }} / miniconda
@@ -115,13 +115,27 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   architecture: ${{ matrix.architecture }}
                   miniconda-version: latest
+                  auto-update-conda: true
+                  channel-priority: strict
                   show-channel-urls: true
+                  environment-file: misc/conda/test-environment.yml
 
             - name: Conda info
-              run: conda info
+              run: |
+                  conda info
+                  conda env list
+                  conda list
 
-            - name: Conda list
-              run: conda list
+            - name: Tests with code coverage and pylint + mypy static analysis
+              id: test
+              run: pytest
+
+            - name: Archive code coverage report
+              if: (success() || steps.test.conclusion == 'failure')
+              uses: actions/upload-artifact@v3
+              with:
+                  name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.architecture }}
+                  path: build/tests/htmlcov/
 
 
     test-platform-packages:
@@ -144,7 +158,7 @@ jobs:
                   sudo -n apt-get update -y
                   sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
                   sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
-                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,toml,werkzeug,wheel}
+                  sudo -n apt-get install -y python3-{filelock,mypy,pytest,werkzeug,wheel}
                   sudo -n apt-get install -y python3-pytest-{cov,pylint,sugar,xdist}
                   sudo -n apt-get install -y python3-pytest-repeat || :
 

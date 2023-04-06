@@ -36,24 +36,24 @@ dependencies = [
 [project.optional-dependencies]
 minimal = [
     "pycurl==7.44.0",       # need CURLINFO_CONDITION_UNMET
-    "tenacity==6.2.0",      # need type hinting and no-warnings asyncio (also requires six, but it must be recent)
+    "tenacity==6.2.0",      # need type hinting and no-warnings asyncio (also requires six)
     "tqdm==4.50.0"          # need colour parameter (also requires colorama on win32)
 ]
 
 test = [
-    "bandit[toml]",                 # security issues checks
-    "pytest",                       # pytest testing framework
-    "pytest-cov",                   # code coverage (--cov)
-    "pytest-httpserver",            # HTTP server fixture
-    "pytest-mock",                  # mocker fixtures for monkey patching
-    "pytest-mypy",                  # type hinting verifier (--mypy)
-    "pytest-pylint",                # static code analysis (--pylint)
-    "pytest-repeat",                # repeating tests (@pytest.mark.repeat)
-    "pytest-sugar",                 # look-and-feel for pytest progress
-    "pytest-xdist[psutil]",         # distributed tests (-n logical --no-pylint)
-    "setuptools-scm[toml]>=6.2",    # git tags-based versioning in editable install
-    "types-pycurl",                 # external type annotations: pycurl
-    "types-tqdm"                    # external type annotations: tqdm
+    "bandit[toml]",         # security issues checks
+    "pytest",               # pytest testing framework
+    "pytest-cov",           # code coverage (--cov)
+    "pytest-httpserver",    # HTTP server fixture
+    "pytest-mock",          # mocker fixtures for monkey patching
+    "pytest-mypy",          # type hinting verifier (--mypy)
+    "pytest-pylint",        # static code analysis (--pylint)
+    "pytest-repeat",        # repeating tests (@pytest.mark.repeat)
+    "pytest-sugar",         # look-and-feel for pytest progress
+    "pytest-xdist[psutil]", # distributed tests (-n logical --no-pylint)
+    "setuptools-scm[toml]", # git tags-based versioning in editable install
+    "types-pycurl",         # external type annotations: pycurl
+    "types-tqdm"            # external type annotations: tqdm
 ]
 
 environment = [
