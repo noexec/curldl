@@ -211,10 +211,10 @@ class Curldl:
         :param rel_path: ``basedir``-relative output file path
         :param size: expected file size in bytes, or ``None`` to ignore
         :param digests: mapping of digest algorithms to expected hexadecimal digest strings, or ``None`` to ignore
-            (see :func:`curldl.util.FileSystem.verify_size_and_digests`)
+        (see :func:`curldl.util.FileSystem.verify_size_and_digests`)
         :raises ValueError: relative path escapes base directory or is otherwise unsafe
-            (see :func:`curldl.util.FileSystem.verify_rel_path_is_safe`),
-            or file size mismatch, or one of digests fails verification
+        (see :func:`curldl.util.FileSystem.verify_rel_path_is_safe`),
+        or file size mismatch, or one of digests fails verification
         :raises pycurl.error: PycURL error when downloading after retries are exhausted
         """
         path, path_partial = [self._prepare_full_path(rel_path + rel_ext) for rel_ext in ('', '.part')]

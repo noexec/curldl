@@ -20,7 +20,7 @@ class FileSystem:
         :param basedir: base directory path
         :param rel_path: path relative to base directory
         :raises ValueError: relative path escapes base directory before or after symlink resolution,
-            resulting path is a dangling symlink, is not a file or a symlink to file
+        resulting path is a dangling symlink, is not a file or a symlink to file
         """
         base = os.path.abspath(basedir)
         path = os.path.abspath(os.path.join(basedir, rel_path))
@@ -96,7 +96,7 @@ class FileSystem:
         """Sets file timestamp to a POSIX timestamp. If timestamp is negative, does nothing.
         :param path: filesystem path, must exist; symlinks are followed
         :param timestamp: POSIX UTC-based timestamp to store as last-modified
-               and last-accessed file time if non-negative
+        and last-accessed file time if non-negative
         """
         if timestamp < 0:
             return
