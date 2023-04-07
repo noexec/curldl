@@ -2,6 +2,6 @@
 
 Usage:
     import curldl
-    (use curldl.Downloader...)
+    (use curldl.Curldl...)
 """
-from curldl.curldl import Downloader
+from curldl.curldl import Curldl

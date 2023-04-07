@@ -18,7 +18,7 @@ from curldl.util import FileSystem, Time
 log = logging.getLogger(__name__)
 
 
-class Downloader:
+class Curldl:
     """Interface for downloading functionality of PycURL"""
 
     DOWNLOAD_RETRY_ERRORS = {
@@ -150,8 +150,8 @@ class Downloader:
         debug_msg = debug_msg[:-1].decode('ascii', 'replace')
         log.debug('curl: [%s] %s', debug_type, debug_msg)
 
-    def download(self, url: str, rel_path: str, *, size: int | None = None,
-                 digests: dict[str, str] | None = None) -> None:
+    def get(self, url: str, rel_path: str, *, size: int | None = None,
+            digests: dict[str, str] | None = None) -> None:
         """Download a URL to basedir-relative path and verify its expected size and digests.
         See Utilities.verify_size_and_digests() for format of expected digests."""
         path, path_partial = [self._prepare_full_path(rel_path + rel_ext) for rel_ext in ('', '.part')]
