@@ -6,7 +6,7 @@ import sys
 import urllib.parse
 from importlib import metadata
 
-from curldl import Downloader
+from curldl import Curldl
 from curldl.util import Log, Cryptography
 
 log = logging.getLogger(__name__)
@@ -80,10 +80,10 @@ class CommandLine:
 
     def main(self) -> object:
         """Command-line program entry point"""
-        downloader = Downloader(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
+        dl = Curldl(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
         for url, output in zip(self.args.url, self.args.output):
-            downloader.download(url, rel_path=output, size=self.args.size,
-                                digests=self.args.digest and {self.args.algo: self.args.digest})
+            dl.get(url, rel_path=output, size=self.args.size,
+                   digests=self.args.digest and {self.args.algo: self.args.digest})
         return 0
 
     @staticmethod

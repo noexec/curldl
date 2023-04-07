@@ -1,4 +1,4 @@
-"""Downloader class unit tests"""
+"""Curldl class unit tests"""
 from __future__ import annotations
 
 import hashlib
@@ -83,8 +83,8 @@ def test_successful_download(tmp_path: pathlib.Path, httpserver: HTTPServer, cap
     file_data = b'x' * 100
     httpserver.expect_oneshot_request('/file.txt', method='GET').respond_with_data(file_data)
 
-    downloader = curldl.Downloader(basedir=tmp_path, progress=progress, verbose=verbose)
-    downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=size, digests=digests)
+    dl = curldl.Curldl(basedir=tmp_path, progress=progress, verbose=verbose)
+    dl.get(httpserver.url_for('/file.txt'), 'file.txt', size=size, digests=digests)
     httpserver.check()
     assert read_file_content(tmp_path / 'file.txt') == file_data
 
@@ -98,9 +98,9 @@ def test_failed_size_check(tmp_path: pathlib.Path, httpserver: HTTPServer, caplo
     file_data = b'x' * 100
     httpserver.expect_oneshot_request('/file.txt', method='GET').respond_with_data(file_data)
 
-    downloader = curldl.Downloader(basedir=tmp_path)
+    dl = curldl.Curldl(basedir=tmp_path)
     with pytest.raises(ValueError):
-        downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=size)
+        dl.get(httpserver.url_for('/file.txt'), 'file.txt', size=size)
 
     httpserver.check()
     assert not (tmp_path / 'file.txt').exists()
@@ -116,9 +116,9 @@ def test_failed_digest_check(tmp_path: pathlib.Path, httpserver: HTTPServer, cap
     file_data = b'x' * 100
     httpserver.expect_oneshot_request('/file.txt', method='GET').respond_with_data(file_data)
 
-    downloader = curldl.Downloader(basedir=tmp_path)
+    dl = curldl.Curldl(basedir=tmp_path)
     with pytest.raises(ValueError):
-        downloader.download(httpserver.url_for('/file.txt'), 'file.txt', digests=digests)
+        dl.get(httpserver.url_for('/file.txt'), 'file.txt', digests=digests)
 
     httpserver.check()
     assert not (tmp_path / 'file.txt').exists()
@@ -140,9 +140,9 @@ def test_successful_download_after_failure(tmp_path: pathlib.Path, httpserver: H
                             headers={'Location': httpserver.url_for('/elsewhere')})
         return Response(b'xxx')
 
-    downloader = curldl.Downloader(basedir=tmp_path, retry_wait_sec=0, retry_attempts=retries_left, max_redirects=0)
+    dl = curldl.Curldl(basedir=tmp_path, retry_wait_sec=0, retry_attempts=retries_left, max_redirects=0)
     httpserver.expect_request('/file.txt', method='GET').respond_with_handler(eventual_response_handler_cb)
-    downloader.download(httpserver.url_for('/file.txt'), 'file.txt')
+    dl.get(httpserver.url_for('/file.txt'), 'file.txt')
 
     httpserver.check()
     assert read_file_content(tmp_path / 'file.txt') == b'xxx'
@@ -164,8 +164,8 @@ def test_redirected_download(tmp_path: pathlib.Path, httpserver: HTTPServer) -> 
         httpserver.expect_ordered_request(
             '/file.txt' + ('+' * redirect_idx), method='GET').respond_with_handler(redirect_response_handler_cb)
 
-    downloader = curldl.Downloader(basedir=tmp_path, verbose=True, max_redirects=max_redirects)
-    downloader.download(httpserver.url_for('/file.txt'), 'file.txt')
+    dl = curldl.Curldl(basedir=tmp_path, verbose=True, max_redirects=max_redirects)
+    dl.get(httpserver.url_for('/file.txt'), 'file.txt')
     httpserver.check()
 
     file_stat = os.stat(tmp_path / 'file.txt')
@@ -187,12 +187,12 @@ def test_partial_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog
     httpserver.expect_request('/abc', method='GET').respond_with_handler(
         make_range_response_handler('/abc', file_data, timestamp=timestamp, statuses=[True, False, True]))
 
-    downloader = curldl.Downloader(basedir=tmp_path, verbose=True, min_part_bytes=min_part_bytes, retry_attempts=0)
+    dl = curldl.Curldl(basedir=tmp_path, verbose=True, min_part_bytes=min_part_bytes, retry_attempts=0)
 
     def download_and_possibly_verify() -> None:
         """Download file and verify its size/digest according to test parameter"""
-        downloader.download(httpserver.url_for('/abc'), 'file.bin', size=(size if verify_file else None),
-                            digests=({'sha1': compute_hex_digest(file_data, 'sha1')} if verify_file else None))
+        dl.get(httpserver.url_for('/abc'), 'file.bin', size=(size if verify_file else None),
+               digests=({'sha1': compute_hex_digest(file_data, 'sha1')} if verify_file else None))
 
     # Request #1: should succeed
     download_and_possibly_verify()
@@ -240,7 +240,7 @@ def test_repeated_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplo
                            size: int, verify_file: bool, timestamp1: int, timestamp2: int | float) -> None:
     """One download after another, with a possibly unmodified source file; also verifies User-Agent header"""
     caplog.set_level(logging.DEBUG)
-    downloader = curldl.Downloader(basedir=tmp_path, verbose=True, user_agent='curl/0.0.0')
+    dl = curldl.Curldl(basedir=tmp_path, verbose=True, user_agent='curl/0.0.0')
     data1, data2 = os.urandom(size), os.urandom(size)
 
     def make_response_handler(timestamp: int | float, data: bytes) -> Callable[[Request], Response]:
@@ -257,8 +257,8 @@ def test_repeated_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplo
 
     def download_and_possibly_verify(data: bytes) -> None:
         """Download file and verify its size/digest according to test parameter and expected data"""
-        downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=(size if verify_file else None),
-                            digests=({'sha1': compute_hex_digest(data, 'sha1')} if verify_file else None))
+        dl.get(httpserver.url_for('/file.txt'), 'file.txt', size=(size if verify_file else None),
+               digests=({'sha1': compute_hex_digest(data, 'sha1')} if verify_file else None))
 
     httpserver.expect_ordered_request('/file.txt').respond_with_handler(make_response_handler(timestamp1, data1))
     httpserver.expect_ordered_request('/file.txt').respond_with_handler(make_response_handler(timestamp2, data2))
@@ -281,7 +281,7 @@ def test_repeated_download(tmp_path: pathlib.Path, httpserver: HTTPServer, caplo
 def test_aborted_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> None:
     """An aborted server connection that did not send HTTP status"""
     caplog.set_level(logging.DEBUG)
-    downloader = curldl.Downloader(basedir=tmp_path, verbose=True, retry_attempts=0)
+    dl = curldl.Curldl(basedir=tmp_path, verbose=True, retry_attempts=0)
 
     class DisconnectingHTTPServer(http.server.BaseHTTPRequestHandler):
         """HTTP Server that closes the connection after reading the request"""
@@ -297,7 +297,7 @@ def test_aborted_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture) -> 
 
         threading.Thread(target=httpd.handle_request, daemon=True).start()
         with pytest.raises(pycurl.error) as ex_info:
-            downloader.download(url, 'some-file.txt')
+            dl.get(url, 'some-file.txt')
 
         assert ex_info.value.args[0] == pycurl.E_GOT_NOTHING
 
@@ -315,9 +315,9 @@ def test_partial_download_keep(tmp_path: pathlib.Path, httpserver: HTTPServer, c
     httpserver.expect_oneshot_request('/file.txt').respond_with_handler(
         make_range_response_handler('/file.txt', b'y' * size))
 
-    downloader = curldl.Downloader(basedir=tmp_path, verbose=True, retry_attempts=0, min_part_bytes=0,
-                                   always_keep_part_bytes=always_keep_part_size)
-    downloader.download(httpserver.url_for('/file.txt'), 'file.txt', size=(size if specify_size else None))
+    dl = curldl.Curldl(basedir=tmp_path, verbose=True, retry_attempts=0, min_part_bytes=0,
+                       always_keep_part_bytes=always_keep_part_size)
+    dl.get(httpserver.url_for('/file.txt'), 'file.txt', size=(size if specify_size else None))
     httpserver.check()
 
     assert not (tmp_path / 'file.txt.part').exists()
@@ -332,14 +332,14 @@ def test_disallowed_schemes(tmp_path: pathlib.Path, caplog: LogCaptureFixture, s
     caplog.set_level(logging.DEBUG)
 
     scheme = getattr(pycurl, 'PROTO_' + scheme_str.upper())
-    default_enabled = scheme in curldl.Downloader.DEFAULT_ALLOWED_PROTOCOLS
-    assert bool(curldl.Downloader(basedir=tmp_path)._allowed_protocols_bitmask  # pylint: disable=protected-access
+    default_enabled = scheme in curldl.Curldl.DEFAULT_ALLOWED_PROTOCOLS
+    assert bool(curldl.Curldl(basedir=tmp_path)._allowed_protocols_bitmask  # pylint: disable=protected-access
                 & scheme) == default_enabled
 
-    downloader = curldl.Downloader(basedir=tmp_path, min_part_bytes=0, allowed_protocols_bitmask=
-                                   ((pycurl.PROTO_TFTP | pycurl.PROTO_DICT) if default_enabled else 0))
+    dl = curldl.Curldl(basedir=tmp_path, min_part_bytes=0, allowed_protocols_bitmask=
+                       ((pycurl.PROTO_TFTP | pycurl.PROTO_DICT) if default_enabled else 0))
     with pytest.raises(pycurl.error) as ex_info:
-        downloader.download(f'{scheme_str}://{"example.com" if scheme_str != "file" else ""}/test', 'test')
+        dl.get(f'{scheme_str}://{"example.com" if scheme_str != "file" else ""}/test', 'test')
 
     assert ex_info.value.args[0] == pycurl.E_UNSUPPORTED_PROTOCOL
     assert not (tmp_path / 'test').exists()
@@ -352,13 +352,13 @@ def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCapture
     """Verify that a partial download via file:// URL is successful (or not) once FILE scheme is allowed"""
     caplog.set_level(logging.DEBUG)
     if disable_resume:
-        mocker.patch.object(curldl.Downloader, 'RESUME_FROM_SCHEMES', curldl.Downloader.RESUME_FROM_SCHEMES - {'file'})
+        mocker.patch.object(curldl.Curldl, 'RESUME_FROM_SCHEMES', curldl.Curldl.RESUME_FROM_SCHEMES - {'file'})
 
     with open(tmp_path / 'file.txt', 'wb') as file:
         file.write(b'x' * 512)
 
-    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols)
-    downloader.download((tmp_path / 'file.txt').absolute().as_uri(), 'file.out')
+    dl = curldl.Curldl(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols)
+    dl.get((tmp_path / 'file.txt').absolute().as_uri(), 'file.out')
     assert read_file_content(tmp_path / 'file.out') == b'x' * 512
 
     with open(tmp_path / 'file.txt', 'wb') as file:
@@ -366,19 +366,19 @@ def test_file_scheme_partial_download(tmp_path: pathlib.Path, caplog: LogCapture
     os.rename(tmp_path / 'file.out', tmp_path / 'file.out.part')
     os.truncate(tmp_path / 'file.out.part', 256)
 
-    downloader.download((tmp_path / 'file.txt').absolute().as_uri(), 'file.out', size=512)
+    dl.get((tmp_path / 'file.txt').absolute().as_uri(), 'file.out', size=512)
     assert read_file_content(tmp_path / 'file.out') == (b'y' if disable_resume else b'x') * 256 + b'y' * 256
 
 
 @pytest.mark.parametrize('allowed_protocols', [pycurl.PROTO_FILE | pycurl.PROTO_HTTPS, pycurl.PROTO_ALL])
 def test_file_scheme_unsuccessful_download(tmp_path: pathlib.Path, caplog: LogCaptureFixture,
                                            allowed_protocols: int) -> None:
-    """Verify that a non-HTTP error of allowed scheme does not confuse Downloader"""
+    """Verify that a non-HTTP error of allowed scheme does not confuse Curldl"""
     caplog.set_level(logging.DEBUG)
 
-    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols)
+    dl = curldl.Curldl(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols)
     with pytest.raises(pycurl.error) as ex_info:
-        downloader.download((tmp_path / 'file.txt').absolute().as_uri(), 'file.txt')
+        dl.get((tmp_path / 'file.txt').absolute().as_uri(), 'file.txt')
 
     assert ex_info.value.args[0] == pycurl.E_FILE_COULDNT_READ_FILE
     assert not (tmp_path / 'txt').exists()
@@ -387,9 +387,9 @@ def test_file_scheme_unsuccessful_download(tmp_path: pathlib.Path, caplog: LogCa
 @pytest.mark.parametrize('allowed_protocols',
                          [pycurl.PROTO_SMTP, pycurl.PROTO_SMTP | pycurl.PROTO_DICT, pycurl.PROTO_ALL])
 def test_smtp_scheme_bailout(tmp_path: pathlib.Path, caplog: LogCaptureFixture, allowed_protocols: int) -> None:
-    """Verify that non-0 non-HTTP response code does not confuse Downloader"""
+    """Verify that non-0 non-HTTP response code does not confuse Curldl"""
     caplog.set_level(logging.DEBUG)
-    downloader = curldl.Downloader(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols, retry_attempts=0)
+    dl = curldl.Curldl(basedir=tmp_path, allowed_protocols_bitmask=allowed_protocols, retry_attempts=0)
 
     class SMTPMockServer(socketserver.StreamRequestHandler):
         """SMTP server that immediately sends a bad hello message"""
@@ -401,7 +401,7 @@ def test_smtp_scheme_bailout(tmp_path: pathlib.Path, caplog: LogCaptureFixture, 
     with socketserver.TCPServer(('localhost', 0), SMTPMockServer) as smtpd:
         threading.Thread(target=smtpd.handle_request, daemon=True).start()
         with pytest.raises(pycurl.error) as ex_info:
-            downloader.download(f'smtp://localhost:{smtpd.server_address[1]}/test', 'smtp.txt')
+            dl.get(f'smtp://localhost:{smtpd.server_address[1]}/test', 'smtp.txt')
         assert ex_info.value.args[0] == pycurl.E_FTP_WEIRD_SERVER_REPLY
 
     assert not (tmp_path / 'smtp.txt').exists()
@@ -409,7 +409,7 @@ def test_smtp_scheme_bailout(tmp_path: pathlib.Path, caplog: LogCaptureFixture, 
 
 
 def test_configuration_callback(tmp_path: pathlib.Path, httpserver: HTTPServer) -> None:
-    """Verify that configuration callback is invoked by Downloader and has effect"""
+    """Verify that configuration callback is invoked by Curldl and has effect"""
     def curl_configuration_cb(curl: pycurl.Curl) -> None:
         """Changes User-Agent header"""
         curl.setopt(pycurl.USERAGENT, 'changed-user-agent')
@@ -421,8 +421,8 @@ def test_configuration_callback(tmp_path: pathlib.Path, httpserver: HTTPServer) 
 
     httpserver.expect_oneshot_request('/abc').respond_with_handler(response_handler_cb)
 
-    downloader = curldl.Downloader(basedir=tmp_path, retry_attempts=0, curl_config_callback=curl_configuration_cb)
-    downloader.download(httpserver.url_for('/abc'), 'abc.txt')
+    dl = curldl.Curldl(basedir=tmp_path, retry_attempts=0, curl_config_callback=curl_configuration_cb)
+    dl.get(httpserver.url_for('/abc'), 'abc.txt')
 
     httpserver.check()
     assert read_file_content(tmp_path / 'abc.txt') == b'xyz'

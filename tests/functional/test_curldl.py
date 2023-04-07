@@ -10,7 +10,7 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 from pytest_httpserver import HTTPServer
 
-from unit.test_downloader import compute_hex_digest, read_file_content
+from unit.test_curldl import compute_hex_digest, read_file_content
 import curldl
 from curldl import util
 
@@ -27,7 +27,7 @@ def test_file_downloads(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: 
                         progress: bool, verbose: bool, log_level: int) -> None:
     """One or more successful or 404, one-shot or sequence, safe or unsafe file download attempts"""
     caplog.set_level(log_level)
-    downloader = curldl.Downloader(basedir=tmp_path/'base', progress=progress, verbose=verbose, retry_attempts=0)
+    dl = curldl.Curldl(basedir=tmp_path / 'base', progress=progress, verbose=verbose, retry_attempts=0)
 
     file_content = os.urandom(200 if size is None else size)
     file_digests = {algo: compute_hex_digest(file_content, algo) for algo in algos} if algos else None
@@ -44,14 +44,14 @@ def test_file_downloads(tmp_path: pathlib.Path, httpserver: HTTPServer, caplog: 
                 '/location/filename' + file_suffix, method='GET').respond_with_data(file_content)
 
             if req_count > 0 and file_path_is_safe:
-                downloader.download(httpserver.url_for('/location/filename') + file_suffix,
-                                    file_path + file_suffix, size=size, digests=file_digests)
+                dl.get(httpserver.url_for('/location/filename') + file_suffix,
+                       file_path + file_suffix, size=size, digests=file_digests)
                 assert read_file_content(file_local_path) == file_content
 
             else:
                 with pytest.raises(pycurl.error if file_path_is_safe else ValueError):
-                    downloader.download(httpserver.url_for('/location/filename') + file_suffix + '.404',
-                                        file_path + file_suffix, size=size, digests=file_digests)
+                    dl.get(httpserver.url_for('/location/filename') + file_suffix + '.404',
+                           file_path + file_suffix, size=size, digests=file_digests)
                 assert not file_local_path.exists()
 
                 if file_path_is_safe:
