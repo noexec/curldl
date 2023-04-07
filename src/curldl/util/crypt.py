@@ -1,4 +1,4 @@
-"""Cryptographic utilities"""
+"""Cryptographic utilities for internal use"""
 from __future__ import annotations
 
 import hashlib
@@ -9,22 +9,28 @@ log = logging.getLogger(__name__)
 
 
 class Cryptography:
-    """Filesystem utilities"""
+    """Cryptographic utilities"""
 
     FILE_CHUNK_BYTES = 8 * 1024 ** 2
 
     @staticmethod
     def get_available_digests() -> list[str]:
-        """Returns lists of fixed-size digest algorithms in hashlib"""
+        """Returns list of fixed-size digest algorithms in :mod:`hashlib`.
+        Uses :attr:`hashlib.algorithms_guaranteed` because :attr:`hashlib.algorithms_available` may
+        result in runtime errors due to deprecated algorithms being hidden by OpenSSL.
+        :return: guaranteed algorithms in :mod:`hashlib` that produce a fixed-size digest
+        """
         return sorted(algo for algo in hashlib.algorithms_guaranteed
                       if hashlib.new(algo).digest_size != 0)
 
     @classmethod
     def verify_digest(cls, path: str | os.PathLike[str], algo: str, digest: str) -> None:
-        """Verify file digest and raise ValueError in case of mismatch.
-        :param path: file path
-        :param algo: hash algorithm name accepted by hashlib.new()
-        :param digest: hexadecimal string"""
+        """Verify file digest and raise :class:`ValueError` in case of mismatch.
+        :param path: input file path
+        :param algo: hash algorithm name accepted by :func:`hashlib.new`
+        :param digest: hexadecimal digest string to verify
+        :raises ValueError: ``digest`` has incorrect length or fails verification
+        """
         hash_obj = hashlib.new(algo)
         digest_name = hash_obj.name.upper()
 

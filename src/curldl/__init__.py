@@ -1,7 +1,3 @@
-"""Safely and reliably download files with PycURL
-
-Usage:
-    import curldl
-    (use curldl.Curldl...)
-"""
+"""Safely and reliably download files with PycURL.
+See :class:`curldl.Curldl` for usage examples."""
 from curldl.curldl import Curldl

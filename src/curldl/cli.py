@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 
 class CommandLine:
-    """Command-line interface"""
+    """Command-line interface, exposed via module entry point"""
 
     def __init__(self) -> None:
         """Initialize argument parser and unhandled exception hook"""
@@ -23,6 +23,10 @@ class CommandLine:
 
     @staticmethod
     def _configure_logger(args: argparse.Namespace) -> None:
+        """Configure logger according to command-line arguments.
+        Specifying `verbose` argument raises the log level to `debug`.
+        :param args: command-line arguments
+        """
         debug_log_level = 'debug'
         if args.verbose and args.log != debug_log_level:
             args.log = debug_log_level.capitalize()
@@ -36,7 +40,9 @@ class CommandLine:
 
     @classmethod
     def _parse_arguments(cls) -> argparse.Namespace:
-        """Parse command-line arguments"""
+        """Parse command-line arguments
+        :return: arguments after configuring the logger and possibly inferring other arguments
+        """
         parser = argparse.ArgumentParser(prog=__package__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
         log_choices = ['debug', 'info', 'warning', 'error', 'critical']
@@ -68,7 +74,12 @@ class CommandLine:
 
     @classmethod
     def _infer_arguments(cls, output_arg: argparse.Action, args: argparse.Namespace) -> argparse.Namespace:
-        """Infer missing arguments"""
+        """Infer missing arguments
+        :param output_arg: `output` argument to infer
+        :param args: arguments to extend
+        :return: input arguments after inferring missing ones
+        :raises argparse.ArgumentError: multiple URLs are specified with ``output`` argument
+        """
         if not args.output:
             args.output = [os.path.basename(urllib.parse.unquote(urllib.parse.urlparse(url).path)) for url in args.url]
             log.info('Saving download(s) to: %s', ', '.join(args.output))
@@ -79,7 +90,9 @@ class CommandLine:
         return args
 
     def main(self) -> object:
-        """Command-line program entry point"""
+        """Command-line program entry point
+        :return: program exit status
+        """
         dl = Curldl(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
         for url, output in zip(self.args.url, self.args.output):
             dl.get(url, rel_path=output, size=self.args.size,
@@ -88,7 +101,10 @@ class CommandLine:
 
     @staticmethod
     def _get_package_version() -> str:
-        """Retrieve package version from metadata, raising error for uninstalled development sources"""
+        """Retrieve package version from metadata, raising error for uninstalled development sources
+        :return: package version string
+        :raises metadata.PackageNotFoundError: version is not available, e.g. when package is not installed
+        """
         try:
             return metadata.version(__package__)
         except metadata.PackageNotFoundError:
@@ -97,5 +113,7 @@ class CommandLine:
 
 
 def main() -> object:
-    """Command-line static entry point, suitable for install-time script generation"""
+    """Command-line static entry point, suitable for install-time script generation
+    :return: program exit status
+    """
     return CommandLine().main()
