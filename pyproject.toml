@@ -104,6 +104,7 @@ filterwarnings = [
 [tool.pylint.main]
 py-version = "3.8"
 ignore-paths = ["src/curldl/_version.py"]
+extension-pkg-allow-list = ["pycurl"]
 
 [tool.pylint.format]
 expected-line-ending-format = "LF"
@@ -156,5 +157,4 @@ skip_covered = false
 
 
 [tool.bandit]
-exclude_dirs = ["venv", "build"]
 skips = ["B101"]

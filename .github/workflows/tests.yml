@@ -76,7 +76,7 @@ jobs:
 
             - name: Security issues static analysis
               shell: sh
-              run: ./venv.sh bandit -c pyproject.toml -r .
+              run: ./venv.sh misc/scripts/run-bandit.sh
 
             - name: Reinstall minimal required package versions
               if: ${{ matrix.platform != 'windows' }}
