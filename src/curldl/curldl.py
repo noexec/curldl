@@ -19,7 +19,17 @@ log = logging.getLogger(__name__)
 
 
 class Curldl:
-    """Interface for downloading functionality of PycURL"""
+    """Interface for downloading functionality of PycURL.
+    Basic usage example::
+
+        import curldl, os
+        dl = curldl.Curldl(basedir='downloads', progress=True)
+        dl.get('https://kernel.org/pub/linux/kernel/Historic/linux-0.01.tar.gz', 'linux-0.01.tar.gz',
+               size=73091, digests={'sha1': '566b6fb6365e25f47b972efa1506932b87d3ca7d'})
+        assert os.path.exists('downloads/linux-0.01.tar.gz')
+
+    For a more in-depth guide, refer to the package documentation.
+    """
 
     DOWNLOAD_RETRY_ERRORS = {
         pycurl.E_COULDNT_RESOLVE_PROXY, pycurl.E_COULDNT_RESOLVE_HOST, pycurl.E_COULDNT_CONNECT,
