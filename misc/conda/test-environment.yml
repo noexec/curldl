@@ -1,0 +1,27 @@
+name: test-env
+
+channels:
+    - conda-forge
+    - defaults
+
+dependencies:
+    # runtime dependencies
+    - python>=3.8
+    - pycurl>=7.44.0
+    - tenacity>=6.2.0
+    - tqdm>=4.50.0
+    # testing dependencies
+    - pytest
+    - pytest-cov
+    - pytest-httpserver
+    - pytest-mock
+    - pytest-mypy
+    - pytest-pylint
+    - pytest-sugar
+    - setuptools-scm[toml]
+    - types-pycurl
+    # editable install and unsatisfied runtime dependencies
+    - pip
+    - pip:
+        - types-tqdm
+        - -e ../..

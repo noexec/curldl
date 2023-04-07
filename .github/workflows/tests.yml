@@ -32,7 +32,7 @@ jobs:
                     - platform: windows
                       python-version: 'pypy3.8'
 
-        name: Test Python ${{ matrix.python-version }}-${{ matrix.platform }}-${{ matrix.architecture }} / venv
+        name: Test venv / ${{ matrix.python-version }}-${{ matrix.platform }}-${{ matrix.architecture }}
         runs-on: ${{ matrix.platform }}-latest
 
         steps:
@@ -62,7 +62,7 @@ jobs:
               if: startsWith(matrix.python-version, 'pypy')
               run: sed -i "/^addopts\>/s/^/#/" pyproject.toml
 
-            - name: Tests with code coverage and pylint + mypy static analysis
+            - name: Tests with code coverage and static analysis
               id: test
               shell: sh
               run: ./venv.sh pytest
@@ -90,12 +90,51 @@ jobs:
                   rm -r build/tests
                   ./venv.sh pytest
 
+
+    test-conda:
+        strategy:
+            matrix:
+                python-version: ['3.11', '3.8']
+                platform: [ubuntu, windows, macos]
+
+        name: Test miniconda / ${{ matrix.python-version }}-${{ matrix.platform }}
+        runs-on: ${{ matrix.platform }}-latest
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v3
+              with:
+                  persist-credentials: false
+
+            - name: Set up Miniconda with Python ${{ matrix.python-version }} and package dependencies
+              uses: conda-incubator/setup-miniconda@v2
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  miniconda-version: latest
+                  auto-update-conda: true
+                  channel-priority: strict
+                  show-channel-urls: true
+                  environment-file: misc/conda/test-environment.yml
+
+            - name: Tests with code coverage and static analysis
+              id: test
+              shell: bash -el {0}
+              run: pytest
+
+            - name: Archive code coverage report
+              if: (success() || steps.test.conclusion == 'failure')
+              uses: actions/upload-artifact@v3
+              with:
+                  name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}
+                  path: build/tests/htmlcov/
+
+
     test-platform-packages:
         strategy:
             matrix:
                 platform-image: [ubuntu-latest, ubuntu-20.04]
 
-        name: Test Linux / ${{ matrix.platform-image }} / platform / wheel
+        name: Test ${{ matrix.platform-image }} / platform / wheel
         needs: build-dist
         runs-on: ${{ matrix.platform-image }}
 
@@ -110,7 +149,7 @@ jobs:
                   sudo -n apt-get update -y
                   sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
                   sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
-                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,toml,werkzeug,wheel}
+                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,werkzeug,wheel}
                   sudo -n apt-get install -y python3-pytest-{cov,pylint,sugar,xdist}
                   sudo -n apt-get install -y python3-pytest-repeat || :
 
@@ -125,8 +164,9 @@ jobs:
                   find src -mindepth 1 -delete
                   pip3 install --user $(echo dist/curldl-*.whl)'[test]'
 
-            - name: Tests with essentially no static analysis
+            - name: Tests with minimal static analysis
               run: pytest-3 --no-cov
+
 
     test-dependency-sanity:
         name: Test sanity on Linux / platform / wheel
@@ -155,8 +195,9 @@ jobs:
                   curldl -V
                   curldl -vpo test.html https://github.com/
 
+
     build-dist:
-        name: Build and test the package / venv / wheel
+        name: Build and test wheel / venv
         runs-on: ubuntu-latest
 
         steps:
@@ -186,38 +227,37 @@ jobs:
                   find src -mindepth 1 -delete
                   ./venv.sh pip install dist/curldl-*.whl
 
-            - name: Tests with essentially no static analysis
-              run: |
-                  ./venv.sh curldl -V
-                  ./venv.sh pytest --no-cov
+            - name: Tests with minimal static analysis
+              run: ./venv.sh pytest --no-cov
 
-            - name: Upload build as artifact
+            - name: Upload build artifact
               uses: actions/upload-artifact@v3
               with:
                   name: curldl-dist
                   path: dist/
 
+
     publish-test-pypi:
-        name: Publish package on PyPI
-        needs: [build-dist, test-venv, test-platform-packages, test-dependency-sanity]
+        name: Publish to PyPI on version tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        needs: [build-dist, test-venv, test-conda, test-platform-packages, test-dependency-sanity]
         runs-on: ubuntu-latest
 
         steps:
-            - name: Download package distribution
+            - name: Download package distribution artifact
               uses: actions/download-artifact@v3
               with:
                   name: curldl-dist
                   path: dist
 
             - name: Publish distribution to Test PyPI
-              if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
               uses: pypa/gh-action-pypi-publish@release/v1
               with:
                   password: ${{ secrets.TEST_PYPI_CURLDL_TOKEN }}
                   repository-url: https://test.pypi.org/legacy/
 
-            - name: Publish distribution to PyPI
-              if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'dev')
+            - name: Publish distribution to PyPI if non-dev tag
+              if: (!contains(github.ref, 'dev'))
               uses: pypa/gh-action-pypi-publish@release/v1
               with:
                   password: ${{ secrets.PYPI_CURLDL_TOKEN }}
