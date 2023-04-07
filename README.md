@@ -9,7 +9,7 @@ __curldl__ safely and reliably downloads files with PycURL.
 ```shell
 ./venv.sh install-venv
 ./venv.sh pytest
-./venv.sh bandit -c pyproject.toml -r .
+./venv.sh misc/scripts/run-bandit.sh
 ```
 
 ## License
