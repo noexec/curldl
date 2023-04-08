@@ -20,6 +20,7 @@ dependencies:
     - pytest-sugar
     - setuptools-scm[toml]
     - types-pycurl
+    - attrs
     # editable install and unsatisfied runtime dependencies
     - pip
     - pip:
