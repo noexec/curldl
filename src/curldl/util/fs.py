@@ -1,4 +1,4 @@
-"""Filesystem utilities"""
+"""Filesystem utilities for internal use"""
 from __future__ import annotations
 
 import logging
@@ -11,12 +11,17 @@ log = logging.getLogger(__name__)
 
 
 class FileSystem:
-    """Filesystem utilities"""
+    """Filesystem utilities, include cryptographic digest verification wrappers"""
 
     @staticmethod
     def verify_rel_path_is_safe(basedir: str | os.PathLike[str], rel_path: str | os.PathLike[str]) -> None:
         """Verify that a relative path does not escape base directory
-        and either does not exist or is a file or a symlink to one"""
+        and either does not exist or is a file or a symlink to one
+        :param basedir: base directory path
+        :param rel_path: path relative to base directory
+        :raises ValueError: relative path escapes base directory before or after symlink resolution,
+        resulting path is a dangling symlink, is not a file or a symlink to file
+        """
         base = os.path.abspath(basedir)
         path = os.path.abspath(os.path.join(basedir, rel_path))
         base_real, path_real = os.path.realpath(base), os.path.realpath(path)
@@ -39,7 +44,9 @@ class FileSystem:
 
     @classmethod
     def create_directory_for_path(cls, path: str | os.PathLike[str]) -> None:
-        """Create all path components for path, except for last"""
+        """Create all path components for path, except for last
+        :param path: file path
+        """
         path_dir = os.path.dirname(path)
         if not os.path.exists(path_dir):
             log.info('Creating directory: %s', path_dir)
@@ -48,8 +55,14 @@ class FileSystem:
     @classmethod
     def verify_size_and_digests(cls, path: str | os.PathLike[str], *, size: int | None = None,
                                 digests: dict[str, str] | None = None) -> None:
-        """Verify file size and digests and raise ValueError in case of mismatch.
-        digests is a dict of hash algorithms and digests to check (see Cryptography.verify_digest())."""
+        """Verify file size and digests and raise :class:`ValueError` in case of mismatch.
+        ``digests`` is a dict of hash algorithms and digests to check
+        (see :func:`curldl.util.crypt.Cryptography.verify_digest`).
+        :param path: input file path
+        :param size: expected file size in bytes, or ``None`` to ignore
+        :param digests: mapping of digest algorithms to expected hexadecimal digest strings, or ``None`` to ignore
+        :raises ValueError: not a file or file size mismatch or one of digests fails verification
+        """
         if size is not None:
             cls.verify_size(path, size=size)
         for algo, digest in digests.items() if digests else {}:
@@ -57,7 +70,11 @@ class FileSystem:
 
     @classmethod
     def verify_size(cls, path: str | os.PathLike[str], size: int) -> None:
-        """Verify file size and raise ValueError in case of mismatch or if not a file"""
+        """Verify file size and raise :class:`ValueError` in case of mismatch or if not a file
+        :param path: input file path
+        :param size: expected file size in bytes
+        :raises ValueError: not a file or file size mismatch
+        """
         path_size = os.path.getsize(path)
         if not os.path.isfile(path):
             raise ValueError(f'Not a file: {path}')
@@ -67,13 +84,20 @@ class FileSystem:
 
     @staticmethod
     def get_file_size(path: str | os.PathLike[str], default: int = 0) -> int:
-        """Returns file size, or default if it does not exist or is not a file"""
+        """Returns file size, or ``default`` if it does not exist or is not a file
+        :param path: input file path
+        :param default: value to return if ``path`` does not exist or is not a file (e.g., a directory)
+        :return: input file size
+        """
         return os.path.getsize(path) if os.path.isfile(path) else default
 
     @classmethod
     def set_file_timestamp(cls, path: str | os.PathLike[str], timestamp: int | float) -> None:
-        """Sets file timestamp to a POSIX timestamp.
-        If timestamp is negative, does nothing."""
+        """Sets file timestamp to a POSIX timestamp. If timestamp is negative, does nothing.
+        :param path: filesystem path, must exist; symlinks are followed
+        :param timestamp: POSIX UTC-based timestamp to store as last-modified
+        and last-accessed file time if non-negative
+        """
         if timestamp < 0:
             return
         if log.isEnabledFor(logging.DEBUG):

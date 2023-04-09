@@ -1,5 +1,5 @@
-"""General-purpose utilities
-Provides classes: Log, Time, FileSystem
+"""General-purpose utilities for internal use.
+Provides classes: ``Log``, ``Time``, ``FileSystem``, ``Cryptography``.
 """
 from curldl.util.crypt import Cryptography
 from curldl.util.fs import FileSystem

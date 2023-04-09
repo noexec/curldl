@@ -56,12 +56,13 @@ test = [
     "types-tqdm"            # external type annotations: tqdm
 ]
 
-environment = [
+dev = [
     "build",                # packaging build frontend
     "ipython",              # interactive Python environment
     "pipdeptree",           # show packages dependency tree
     "pip-autoremove",       # remove unused package dependencies
     "pip-review",           # upgrade outdated packages
+    "sphinx",               # documentation generator
     "twine",                # PyPI package publishing
     "wheel"                 # build system, support PEP 518 installs
 ]
