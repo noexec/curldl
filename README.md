@@ -1,4 +1,7 @@
-[![Tests with Coverage and Static Analysis](https://github.com/noexec/curldl/actions/workflows/tests.yml/badge.svg)](https://github.com/noexec/curldl/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/curldl)](https://pypi.org/project/curldl/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/curldl)](https://pypi.org/project/curldl/)
+[![GitHub Workflow Status](https://github.com/noexec/curldl/actions/workflows/tests.yml/badge.svg)](https://github.com/noexec/curldl/actions/workflows/tests.yml)
+[![GitHub](https://img.shields.io/github/license/noexec/curldl)](https://github.com/noexec/curldl/blob/develop/LICENSE.md)
 
 # Introduction
 
