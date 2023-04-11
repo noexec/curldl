@@ -1,3 +1,22 @@
+curldl 1.0.0 (2023-04-09)
+=========================
+
+Features
+--------
+
+- Extend CI/CD workflow to build and publish to PyPI on version tag (#33)
+- Extend CI/CD workflow with Conda tests on Windows, Ubuntu and macOS platforms; Add entry point wrapper test (#36)
+- Add wrappers for directly running Pylint, mypy and Bandit static analyzers (#38)
+- Rename `Downloader.download()` to `Curldl.get()` (#40)
+- Add usage documentation to README and code docstrings (#44)
+
+
+Bugfixes
+--------
+
+- Re-enable local version parts in setuptools-scm (#35)
+
+
 curldl 0.1.0 (2023-04-03)
 =========================
 
