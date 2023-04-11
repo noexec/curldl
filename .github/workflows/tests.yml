@@ -225,12 +225,13 @@ jobs:
                   ./venv.sh pip uninstall -y curldl
                   ./venv.sh python -m build
                   find src -mindepth 1 -delete
+                  ./venv.sh twine check --strict dist/*
                   ./venv.sh pip install dist/curldl-*.whl
 
             - name: Tests with minimal static analysis
               run: ./venv.sh pytest --no-cov
 
-            - name: Upload build artifact
+            - name: Upload build artifacts
               uses: actions/upload-artifact@v3
               with:
                   name: curldl-dist
@@ -238,10 +239,13 @@ jobs:
 
 
     publish-test-pypi:
-        name: Publish to PyPI on version tag
+        name: Publish to PyPI and GitHub on version tag
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        needs: [build-dist, test-venv, test-conda, test-platform-packages, test-dependency-sanity]
+        needs: [build-dist, test-dependency-sanity, test-platform-packages, test-venv, test-conda]
         runs-on: ubuntu-latest
+
+        permissions:
+            contents: write
 
         steps:
             - name: Download package distribution artifact
@@ -255,6 +259,13 @@ jobs:
               with:
                   password: ${{ secrets.TEST_PYPI_CURLDL_TOKEN }}
                   repository-url: https://test.pypi.org/legacy/
+
+            - name: Publish Release to GitHub
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: dist/*
+                  draft: ${{ contains(github.ref, 'dev') }}
+                  prerelease: ${{ contains(github.ref, 'rc') || contains(github.ref, 'a') || contains(github.ref, 'b') }}
 
             - name: Publish distribution to PyPI if non-dev tag
               if: (!contains(github.ref, 'dev'))

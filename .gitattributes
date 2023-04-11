@@ -1,6 +1,5 @@
 # Files to ignore on git archive
-.git*      export-ignore
-assets/**  export-ignore
+.git[^h]*   export-ignore
 
 # Enforce Unix line endings in repo and checkout
 * text=auto eol=lf
