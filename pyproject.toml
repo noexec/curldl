@@ -63,6 +63,7 @@ dev = [
     "pip-autoremove",       # remove unused package dependencies
     "pip-review",           # upgrade outdated packages
     "sphinx",               # documentation generator
+    "towncrier",            # producing changelogs
     "twine",                # PyPI package publishing
     "wheel"                 # build system, support PEP 518 installs
 ]
@@ -71,6 +72,7 @@ dev = [
 "Homepage" = "https://github.com/noexec/curldl"
 "Documentation" = "https://pypi.org/project/curldl/"
 "Bug Tracker" = "https://github.com/noexec/curldl/issues"
+"Changelog" = "https://github.com/noexec/curldl/blob/develop/docs/CHANGELOG.md"
 
 [project.scripts]
 curldl = "curldl.cli:main"
@@ -88,6 +90,11 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 version_scheme = "no-guess-dev"
 write_to = "src/curldl/_version.py"
+
+
+[tool.towncrier]
+directory = "docs/changelog.d"
+filename = "docs/CHANGELOG.md"
 
 
 [tool.pytest.ini_options]

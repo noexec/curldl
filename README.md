@@ -1,4 +1,7 @@
-[![Tests with Coverage and Static Analysis](https://github.com/noexec/curldl/actions/workflows/tests.yml/badge.svg)](https://github.com/noexec/curldl/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/curldl)](https://pypi.org/project/curldl/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/curldl)](https://pypi.org/project/curldl/)
+[![GitHub Workflow Status](https://github.com/noexec/curldl/actions/workflows/tests.yml/badge.svg)](https://github.com/noexec/curldl/actions/workflows/tests.yml)
+[![GitHub](https://img.shields.io/github/license/noexec/curldl)](https://github.com/noexec/curldl/blob/develop/LICENSE.md)
 
 # Introduction
 
@@ -158,7 +161,7 @@ A simplified configuration matrix covered by [CI/CD test + build pipeline](https
 | macOS-x64   | conda                 |          |          |             |                | conda        |
 
 In the table:
-* _venv_ — virtual environment with all package dependencies and [editable package install](https://pip.pypa.io/en/stable/topics/local-project-installs/);
+* _venv_ — virtual environment with all package dependencies and [editable package install](https://pip.pypa.io/en/stable/topics/local-project-installs/); on Ubuntu includes tests with minimal versions of package dependencies;
 * _conda_ — _Miniconda_ with package dependencies installed from _mini-forge_ channel, and _curldl_ as editable package install;
 * _platform_ — as many dependencies as possible satisfied via Ubuntu package repository, and _curldl_ as _wheel_ install.
 
