@@ -96,6 +96,9 @@ write_to = "src/curldl/_version.py"
 directory = "docs/changelog.d"
 filename = "docs/CHANGELOG.md"
 
+title_format = "curldl {version} ({project_date})"
+issue_format = "[#{issue}](https://github.com/noexec/curldl/pull/{issue})"
+
 
 [tool.pytest.ini_options]
 addopts = "--maxfail=10 --mypy --pylint --cov --cov-report=term --cov-report=html"
