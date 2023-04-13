@@ -5,7 +5,7 @@
 
 # Introduction
 
-The __curldl__ Python module safely and reliably downloads files with [PycURL](https://pycurl.io/), which in turn is a wrapper for [libcurl](https://curl.se/libcurl/) file transfer library. The purpose of __curldl__ is providing a straightforward API for downloading files with the following features:
+The __curldl__ Python module safely and reliably downloads files with [PycURL](http://pycurl.io/), which in turn is a wrapper for [libcurl](https://curl.se/libcurl/) file transfer library. The purpose of __curldl__ is providing a straightforward API for downloading files with the following features:
 
 * Multi-protocol support: protocol support is delegated to [curl](https://curl.se/) in as protocol-neutral way as possible. This means that there is no reliance on HTTP-specific header and statuses, for example. If a feature like download resuming and _if-modified-since_ condition is supported by the underlying protocol, it can be used by _curldl_.
 * If a partial download is abandoned, most chances are that it may be resumed later (supported for HTTP(S), FTP(S) and FILE protocols). A `.part` extension is added to the partial download file, and it is renamed to the target file name once the download completes.
@@ -29,7 +29,7 @@ If you encounter a build failure during installation of _pycurl_ dependency, the
 * On Windows, install an unofficial _pycurl_ build since official builds are not available at the moment — e.g., by [Christoph Gohlke](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pycurl), or use _Conda_ (see below).
 * On Windows and macOS, use _Conda_ or _Miniconda_ with [conda-forge](https://conda-forge.org/) channel. For instance, see runtime dependencies in the following [test environment](https://github.com/noexec/curldl/blob/develop/misc/conda/test-environment.yml).
 
-Overall, _curldl_ is expected to have no issues in any environment with Python 3.8+ (CPython or PyPy) — see Testing section below.
+Overall, _curldl_ is expected to have no issues in any environment with Python 3.8+ (CPython or PyPy) — see [Testing](#testing) section below.
 
 
 # Usage
@@ -175,6 +175,12 @@ In order to run tests locally with Python interpreter available in the system, i
 ```
 
 `venv.sh` is a convenience _venv_ wrapper that also enables some additional Python checks; you can simply activate the _venv_ environment instead. Testing with _Conda_ is possible as well — see the [CI/CD pipeline execution](https://github.com/noexec/curldl/actions) for details.
+
+
+# Changelog
+
+See [Changelog](https://github.com/noexec/curldl/blob/develop/docs/CHANGELOG.md) file for a summary of changes in each release.
+
 
 # License
 

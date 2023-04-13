@@ -10,7 +10,8 @@ class Time:
 
     @staticmethod
     def timestamp_to_dt(timestamp: int | float) -> datetime.datetime:
-        """Convert POSIX timestamp to datetime in UTC timezone
+        """Convert POSIX timestamp to datetime in UTC timezone.
+
         :param timestamp: UTC-based POSIX timestamp
         :return: :class:`datetime.datetime` in UTC timezone
         """
@@ -18,7 +19,8 @@ class Time:
 
     @staticmethod
     def timestamp_to_http_date(timestamp: int | float) -> str:
-        """Convert POSIX timestamp to HTTP date in GMT timezone
+        """Convert POSIX timestamp to HTTP date in GMT timezone.
+
         :param timestamp: POSIX timestamp
         :return: RFC-822 date suitable for HTTP headers
         """
@@ -26,7 +28,8 @@ class Time:
 
     @staticmethod
     def timestamp_delta(timestamp_delta: int | float) -> datetime.timedelta:
-        """Convert POSIX timestamp difference to a printable datetime duration
+        """Convert POSIX timestamp difference to a printable datetime duration.
+
         :param timestamp_delta: time period in seconds
         :return: :class:`datetime.datetime` duration, rounded to non-fractional seconds
         """

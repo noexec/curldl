@@ -15,8 +15,9 @@ class Log:
     @classmethod
     def trace_unhandled_exception(cls, exc_type: Type[BaseException], exc: BaseException,
                                   trace_back: types.TracebackType | None) -> None:
-        """Top-level logger for unhandled exceptions, can be assigned to ``sys.excepthook``.
+        """Top-level logger for unhandled exceptions, can be assigned to :func:`sys.excepthook`.
         The exception is logged at ``CRITICAL`` level, ad traceback at ``DEBUG`` level.
+
         :param exc_type: exception type (expected: ``exc.__class__``)
         :param exc: exception object
         :param trace_back: exception traceback (expected: ``exc.__traceback__``)
@@ -29,6 +30,7 @@ class Log:
     def trace_exception(cls, exc: BaseException, msg: str) -> None:
         """Logging helper to trace an exception.
         The exception is logged at ``ERROR`` level, ad traceback at ``DEBUG`` level.
+
         :param exc: exception object
         :param msg: message to prepend when logging the exception
         """

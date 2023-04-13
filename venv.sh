@@ -91,7 +91,7 @@ if [ "$1" = "install-venv" ]; then
         ${pip} install --use-pep517 "pycurl==${pycurl_pypy_compatible_version}"
     fi
 
-    ${pip} install --use-pep517 "${script_dir}[test,dev]"
+    ${pip} install --use-pep517 "${script_dir}[test,dev,doc]"
     ${pip} uninstall -y ${package}
     ${pip} install -e "${script_dir}"
     exit

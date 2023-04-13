@@ -17,7 +17,7 @@ jobs:
     test-venv:
         strategy:
             matrix:
-                python-version: ['3.11', '3.10', '3.9', '3.8', 'pypy3.9', 'pypy3.8']
+                python-version: ['3.x', '3.10', '3.9', '3.8', 'pypy3.9', 'pypy3.8']
                 platform: [ubuntu, windows]
                 architecture: [x64, x86]
                 exclude:
@@ -215,10 +215,19 @@ jobs:
             - name: Set up latest Python
               uses: actions/setup-python@v4
               with:
-                  python-version: '3.11'
+                  python-version: '3.x'
 
             - name: Install package in editable mode (temporarily) and its dependencies
               run: ./venv.sh install-venv
+
+            - name: Build Sphinx documentation
+              run: ./venv.sh misc/scripts/run-sphinx.sh
+
+            - name: Upload documentation artifacts
+              uses: actions/upload-artifact@v3
+              with:
+                  name: curldl-docs
+                  path: build/docs/
 
             - name: Build the package sdist + wheel and install wheel
               run: |
