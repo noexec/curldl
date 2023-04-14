@@ -16,11 +16,12 @@ class FileSystem:
     @staticmethod
     def verify_rel_path_is_safe(basedir: str | os.PathLike[str], rel_path: str | os.PathLike[str]) -> None:
         """Verify that a relative path does not escape base directory
-        and either does not exist or is a file or a symlink to one
+        and either does not exist or is a file or a symlink to one.
+
         :param basedir: base directory path
         :param rel_path: path relative to base directory
         :raises ValueError: relative path escapes base directory before or after symlink resolution,
-        resulting path is a dangling symlink, is not a file or a symlink to file
+            resulting path is a dangling symlink, is not a file or a symlink to file
         """
         base = os.path.abspath(basedir)
         path = os.path.abspath(os.path.join(basedir, rel_path))
@@ -44,7 +45,8 @@ class FileSystem:
 
     @classmethod
     def create_directory_for_path(cls, path: str | os.PathLike[str]) -> None:
-        """Create all path components for path, except for last
+        """Create all path components for path, except for last.
+
         :param path: file path
         """
         path_dir = os.path.dirname(path)
@@ -58,6 +60,7 @@ class FileSystem:
         """Verify file size and digests and raise :class:`ValueError` in case of mismatch.
         ``digests`` is a dict of hash algorithms and digests to check
         (see :func:`curldl.util.crypt.Cryptography.verify_digest`).
+
         :param path: input file path
         :param size: expected file size in bytes, or ``None`` to ignore
         :param digests: mapping of digest algorithms to expected hexadecimal digest strings, or ``None`` to ignore
@@ -70,7 +73,8 @@ class FileSystem:
 
     @classmethod
     def verify_size(cls, path: str | os.PathLike[str], size: int) -> None:
-        """Verify file size and raise :class:`ValueError` in case of mismatch or if not a file
+        """Verify file size and raise :class:`ValueError` in case of mismatch or if not a file.
+
         :param path: input file path
         :param size: expected file size in bytes
         :raises ValueError: not a file or file size mismatch
@@ -84,7 +88,8 @@ class FileSystem:
 
     @staticmethod
     def get_file_size(path: str | os.PathLike[str], default: int = 0) -> int:
-        """Returns file size, or ``default`` if it does not exist or is not a file
+        """Returns file size, or ``default`` if it does not exist or is not a file.
+
         :param path: input file path
         :param default: value to return if ``path`` does not exist or is not a file (e.g., a directory)
         :return: input file size
@@ -94,9 +99,10 @@ class FileSystem:
     @classmethod
     def set_file_timestamp(cls, path: str | os.PathLike[str], timestamp: int | float) -> None:
         """Sets file timestamp to a POSIX timestamp. If timestamp is negative, does nothing.
+
         :param path: filesystem path, must exist; symlinks are followed
         :param timestamp: POSIX UTC-based timestamp to store as last-modified
-        and last-accessed file time if non-negative
+            and last-accessed file time if non-negative
         """
         if timestamp < 0:
             return

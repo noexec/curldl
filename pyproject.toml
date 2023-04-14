@@ -62,10 +62,16 @@ dev = [
     "pipdeptree",           # show packages dependency tree
     "pip-autoremove",       # remove unused package dependencies
     "pip-review",           # upgrade outdated packages
-    "sphinx",               # documentation generator
     "towncrier",            # producing changelogs
     "twine",                # PyPI package publishing
     "wheel"                 # build system, support PEP 518 installs
+]
+
+doc = [
+    "myst-parser[linkify]", # Markdown MyST parser
+    "sphinx",               # documentation generator
+    "sphinx-copybutton",    # "copy" button for code blocks
+    "furo"                  # Sphinx HTML theme
 ]
 
 [project.urls]
@@ -95,6 +101,9 @@ write_to = "src/curldl/_version.py"
 [tool.towncrier]
 directory = "docs/changelog.d"
 filename = "docs/CHANGELOG.md"
+
+title_format = "curldl {version} ({project_date})"
+issue_format = "[#{issue}](https://github.com/noexec/curldl/pull/{issue})"
 
 
 [tool.pytest.ini_options]

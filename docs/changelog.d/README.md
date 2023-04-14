@@ -26,5 +26,5 @@ Supported (default) fragment types:
 ## Updating the Changelog before a release
 
 ```shell
-towncrier build --draft --name curldl --version 1.x.y
+towncrier build --draft --version 1.x.y
 ```

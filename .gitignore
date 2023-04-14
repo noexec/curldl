@@ -16,3 +16,4 @@ __pycache__/
 /build/
 /dist/
 /src/*.egg-info/
+/docs/api/*.rst

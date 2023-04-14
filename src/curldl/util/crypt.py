@@ -16,8 +16,9 @@ class Cryptography:
     @staticmethod
     def get_available_digests() -> list[str]:
         """Returns list of fixed-size digest algorithms in :mod:`hashlib`.
-        Uses :attr:`hashlib.algorithms_guaranteed` because :attr:`hashlib.algorithms_available` may
-        result in runtime errors due to deprecated algorithms being hidden by OpenSSL.
+        Uses :data:`hashlib.algorithms_guaranteed` because :data:`hashlib.algorithms_available`
+        may result in runtime errors due to deprecated algorithms being hidden by OpenSSL.
+
         :return: guaranteed algorithms in :mod:`hashlib` that produce a fixed-size digest
         """
         return sorted(algo for algo in hashlib.algorithms_guaranteed
@@ -26,6 +27,7 @@ class Cryptography:
     @classmethod
     def verify_digest(cls, path: str | os.PathLike[str], algo: str, digest: str) -> None:
         """Verify file digest and raise :class:`ValueError` in case of mismatch.
+
         :param path: input file path
         :param algo: hash algorithm name accepted by :func:`hashlib.new`
         :param digest: hexadecimal digest string to verify

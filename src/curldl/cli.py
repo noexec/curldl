@@ -25,6 +25,7 @@ class CommandLine:
     def _configure_logger(args: argparse.Namespace) -> None:
         """Configure logger according to command-line arguments.
         Specifying `verbose` argument raises the log level to `debug`.
+
         :param args: command-line arguments
         """
         debug_log_level = 'debug'
@@ -40,7 +41,8 @@ class CommandLine:
 
     @classmethod
     def _parse_arguments(cls) -> argparse.Namespace:
-        """Parse command-line arguments
+        """Parse command-line arguments.
+
         :return: arguments after configuring the logger and possibly inferring other arguments
         """
         parser = argparse.ArgumentParser(prog=__package__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -74,11 +76,12 @@ class CommandLine:
 
     @classmethod
     def _infer_arguments(cls, output_arg: argparse.Action, args: argparse.Namespace) -> argparse.Namespace:
-        """Infer missing arguments
+        """Infer missing arguments.
+
         :param output_arg: `output` argument to infer
         :param args: arguments to extend
         :return: input arguments after inferring missing ones
-        :raises argparse.ArgumentError: multiple URLs are specified with ``output`` argument
+        :raises ``argparse.ArgumentError``: multiple URLs are specified with ``output`` argument
         """
         if not args.output:
             args.output = [os.path.basename(urllib.parse.unquote(urllib.parse.urlparse(url).path)) for url in args.url]
@@ -90,7 +93,8 @@ class CommandLine:
         return args
 
     def main(self) -> object:
-        """Command-line program entry point
+        """Command-line program entry point.
+
         :return: program exit status
         """
         dl = Curldl(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
@@ -101,7 +105,8 @@ class CommandLine:
 
     @staticmethod
     def _get_package_version() -> str:
-        """Retrieve package version from metadata, raising error for uninstalled development sources
+        """Retrieve package version from metadata, raising error for uninstalled development sources.
+
         :return: package version string
         :raises metadata.PackageNotFoundError: version is not available, e.g. when package is not installed
         """
@@ -113,7 +118,8 @@ class CommandLine:
 
 
 def main() -> object:
-    """Command-line static entry point, suitable for install-time script generation
+    """Command-line static entry point, suitable for install-time script generation.
+
     :return: program exit status
     """
     return CommandLine().main()
