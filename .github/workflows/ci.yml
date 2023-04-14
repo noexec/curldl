@@ -281,3 +281,23 @@ jobs:
               uses: pypa/gh-action-pypi-publish@release/v1
               with:
                   password: ${{ secrets.PYPI_CURLDL_TOKEN }}
+
+
+    upload-coverage:
+        name: Upload Coverage Reports to Codecov
+        needs: [test-venv]
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Download code coverage artifact
+              uses: actions/download-artifact@v3
+              with:
+                  name: coverage-report-test-venv-3.x-ubuntu-x64
+                  path: coverage
+
+            - name: Upload coverage reports to Codecov
+              uses: codecov/codecov-action@v3
+              with:
+                  directory: coverage
+                  fail_ci_if_error: true
+                  verbose: true
