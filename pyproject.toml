@@ -76,7 +76,7 @@ doc = [
 
 [project.urls]
 "Homepage" = "https://github.com/noexec/curldl"
-"Documentation" = "https://pypi.org/project/curldl/"
+"Documentation" = "https://curldl.readthedocs.io/"
 "Bug Tracker" = "https://github.com/noexec/curldl/issues"
 "Changelog" = "https://github.com/noexec/curldl/blob/develop/docs/CHANGELOG.md"
 
