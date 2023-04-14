@@ -68,7 +68,7 @@ jobs:
               run: ./venv.sh pytest
 
             - name: Archive code coverage report
-              if: (success() || steps.test.conclusion == 'failure') && !startsWith(matrix.python-version, 'pypy')
+              if: ((success() && matrix.python-version == '3.x' && matrix.platform == 'ubuntu') || steps.test.conclusion == 'failure') && !startsWith(matrix.python-version, 'pypy')
               uses: actions/upload-artifact@v3
               with:
                   name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}-${{ matrix.architecture }}
@@ -122,7 +122,7 @@ jobs:
               run: pytest
 
             - name: Archive code coverage report
-              if: (success() || steps.test.conclusion == 'failure')
+              if: ((success() && matrix.python-version == '3.11' && matrix.platform != 'ubuntu') || steps.test.conclusion == 'failure')
               uses: actions/upload-artifact@v3
               with:
                   name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}
@@ -197,7 +197,7 @@ jobs:
 
 
     build-dist:
-        name: Build and test wheel / venv
+        name: Build and test wheel / venv / docs
         runs-on: ubuntu-latest
 
         steps:
@@ -247,7 +247,7 @@ jobs:
                   path: dist/
 
 
-    publish-test-pypi:
+    publish-dist:
         name: Publish to PyPI and GitHub on version tag
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         needs: [build-dist, test-dependency-sanity, test-platform-packages, test-venv, test-conda]
