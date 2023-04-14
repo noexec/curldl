@@ -1,4 +1,4 @@
-name: Tests with Coverage and Static Analysis
+name: 'CI: Test / Lint / Build'
 
 on:
     pull_request:
@@ -68,11 +68,11 @@ jobs:
               run: ./venv.sh pytest
 
             - name: Archive code coverage report
-              if: (success() || steps.test.conclusion == 'failure') && !startsWith(matrix.python-version, 'pypy')
+              if: ((success() && matrix.python-version == '3.x' && matrix.platform == 'ubuntu') || steps.test.conclusion == 'failure') && !startsWith(matrix.python-version, 'pypy')
               uses: actions/upload-artifact@v3
               with:
                   name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}-${{ matrix.architecture }}
-                  path: build/tests/htmlcov/
+                  path: build/tests/coverage/
 
             - name: Security issues static analysis
               shell: sh
@@ -122,11 +122,11 @@ jobs:
               run: pytest
 
             - name: Archive code coverage report
-              if: (success() || steps.test.conclusion == 'failure')
+              if: ((success() && matrix.python-version == '3.11' && matrix.platform != 'ubuntu') || steps.test.conclusion == 'failure')
               uses: actions/upload-artifact@v3
               with:
                   name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}
-                  path: build/tests/htmlcov/
+                  path: build/tests/coverage/
 
 
     test-platform-packages:
@@ -197,7 +197,7 @@ jobs:
 
 
     build-dist:
-        name: Build and test wheel / venv
+        name: Build and test wheel / venv / docs
         runs-on: ubuntu-latest
 
         steps:
@@ -247,7 +247,7 @@ jobs:
                   path: dist/
 
 
-    publish-test-pypi:
+    publish-dist:
         name: Publish to PyPI and GitHub on version tag
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         needs: [build-dist, test-dependency-sanity, test-platform-packages, test-venv, test-conda]
@@ -281,3 +281,29 @@ jobs:
               uses: pypa/gh-action-pypi-publish@release/v1
               with:
                   password: ${{ secrets.PYPI_CURLDL_TOKEN }}
+
+
+    upload-coverage:
+        name: Upload Coverage Reports to Codecov
+        needs: [test-venv]
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v3
+              with:
+                  persist-credentials: false
+
+            - name: Download code coverage artifact
+              uses: actions/download-artifact@v3
+              with:
+                  name: coverage-report-test-venv-3.x-ubuntu-x64
+                  path: coverage
+
+            - name: Upload coverage reports to Codecov
+              uses: codecov/codecov-action@v3
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  directory: coverage
+                  fail_ci_if_error: true
+                  verbose: true

@@ -1,7 +1,10 @@
 [![PyPI](https://img.shields.io/pypi/v/curldl)](https://pypi.org/project/curldl/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/curldl)](https://pypi.org/project/curldl/)
-[![GitHub Workflow Status](https://github.com/noexec/curldl/actions/workflows/tests.yml/badge.svg)](https://github.com/noexec/curldl/actions/workflows/tests.yml)
+[![GitHub Workflow Status](https://github.com/noexec/curldl/actions/workflows/ci.yml/badge.svg)](https://github.com/noexec/curldl/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/noexec/curldl/branch/develop/graph/badge.svg?token=QOA9KZ9A44)](https://codecov.io/gh/noexec/curldl)
+[![Read the Docs](https://img.shields.io/readthedocs/curldl)](https://curldl.readthedocs.io/)
 [![GitHub](https://img.shields.io/github/license/noexec/curldl)](https://github.com/noexec/curldl/blob/develop/LICENSE.md)
+
 
 # Introduction
 
@@ -151,7 +154,7 @@ _curldl_ performs rather extensive checks to prevent base directory escaping —
 
 # Testing
 
-A simplified configuration matrix covered by [CI/CD test + build pipeline](https://github.com/noexec/curldl/actions/workflows/tests.yml) at the time of writing this document is presented below:
+A simplified configuration matrix covered by [CI/CD test + build pipeline](https://github.com/noexec/curldl/actions/workflows/ci.yml) at the time of writing this document is presented below:
 
 | Platform    | CPython 3.8           | PyPy 3.8 | PyPy 3.9 | CPython 3.9 | CPython 3.10   | CPython 3.11 |
 |-------------|-----------------------|----------|----------|-------------|----------------|--------------|
