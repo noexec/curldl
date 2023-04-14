@@ -107,7 +107,7 @@ issue_format = "[#{issue}](https://github.com/noexec/curldl/pull/{issue})"
 
 
 [tool.pytest.ini_options]
-addopts = "--maxfail=10 --mypy --pylint --cov --cov-report=term --cov-report=html"
+addopts = "--maxfail=10 --mypy --pylint --cov --cov-report=term --cov-report=html --cov-report=xml"
 testpaths = ["tests", "src"]    # "src" required for pylint and mypy (whereas cov considers imported files)
 cache_dir = "build/tests/pytest_cache"
 
@@ -171,9 +171,12 @@ show_missing = true
 skip_covered = true
 
 [tool.coverage.html]
-directory = "build/tests/htmlcov"
+directory = "build/tests/coverage"
 show_contexts = true
 skip_covered = false
+
+[tool.coverage.xml]
+output = "build/tests/coverage/coverage.xml"
 
 
 [tool.bandit]

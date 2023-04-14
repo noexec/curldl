@@ -1,4 +1,4 @@
-name: Tests with Coverage and Static Analysis
+name: 'CI: Test / Lint / Build'
 
 on:
     pull_request:
@@ -72,7 +72,7 @@ jobs:
               uses: actions/upload-artifact@v3
               with:
                   name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}-${{ matrix.architecture }}
-                  path: build/tests/htmlcov/
+                  path: build/tests/coverage/
 
             - name: Security issues static analysis
               shell: sh
@@ -126,7 +126,7 @@ jobs:
               uses: actions/upload-artifact@v3
               with:
                   name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}
-                  path: build/tests/htmlcov/
+                  path: build/tests/coverage/
 
 
     test-platform-packages:
