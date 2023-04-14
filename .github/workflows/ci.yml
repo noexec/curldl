@@ -289,6 +289,11 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
+            - name: Check out repository
+              uses: actions/checkout@v3
+              with:
+                  persist-credentials: false
+
             - name: Download code coverage artifact
               uses: actions/download-artifact@v3
               with:
@@ -298,6 +303,7 @@ jobs:
             - name: Upload coverage reports to Codecov
               uses: codecov/codecov-action@v3
               with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
                   directory: coverage
                   fail_ci_if_error: true
                   verbose: true
