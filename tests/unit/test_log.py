@@ -1,6 +1,7 @@
 """Log class unit tests"""
 from __future__ import annotations
 
+import gc
 import logging
 import sys
 import threading
@@ -70,6 +71,7 @@ def test_trace_unraisable_exception(caplog: LogCaptureFixture, mocker: MockerFix
 
     obj = DestructorRaiser()
     del obj
+    gc.collect()
 
     assert caplog.record_tuples[0] == (LOG_PACKAGE, logging.ERROR, str(DestructorRaiser.__del__) +
                                        ': ValueError: test_exception')
