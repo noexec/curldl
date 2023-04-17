@@ -54,7 +54,34 @@ def test_trace_unhandled_exception(caplog: LogCaptureFixture, log_level: int) ->
     verify_debug_log_records(log_level, caplog.record_tuples)
 
 
+@pytest.mark.parametrize('log_level', [logging.WARNING, logging.DEBUG])
+def test_trace_unraisable_exception(caplog: LogCaptureFixture, mocker: MockerFixture, log_level: int) -> None:
+    """Verify appropriate log lines are produced when tracing an unhandled exception"""
+    class DestructorRaiser:
+        """Raises an (unraisable) exception in destructor"""
+        def __del__(self) -> None:
+            """Raise an exception that cannot be handled via try/except clause"""
+            raise ValueError('test_exception')
+
+    caplog.set_level(log_level)
+    mocker.patch.object(sys, 'unraisablehook')
+    sys.unraisablehook = Log.trace_unraisable_exception
+
+    obj = DestructorRaiser()
+    del obj
+
+    assert caplog.record_tuples[0] == (LOG_PACKAGE, logging.ERROR, str(DestructorRaiser.__del__) +
+                                       ': ValueError: test_exception')
+    verify_debug_log_records(log_level, caplog.record_tuples)
+
+
 def test_trace_unhandled_exception_type(mocker: MockerFixture) -> None:
     """Statically verify that the function is assignable to sys.excepthook (mypy)"""
     mocker.patch.object(sys, 'excepthook')
     sys.excepthook = Log.trace_unhandled_exception
+
+
+def test_trace_unraisable_exception_type(mocker: MockerFixture) -> None:
+    """Statically verify that the function is assignable to sys.unraisablehook (mypy)"""
+    mocker.patch.object(sys, 'unraisablehook')
+    sys.unraisablehook = Log.trace_unraisable_exception
