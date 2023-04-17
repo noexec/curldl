@@ -8,6 +8,7 @@ import os.path
 import pathlib
 import subprocess  # nosec
 import sys
+import threading
 from importlib import metadata
 
 import pytest
@@ -29,6 +30,7 @@ def patch_system_environment(mocker: MockerFixture, arguments: list[str]) -> Non
     mocker.patch.object(sys, 'argv', [PACKAGE_NAME] + arguments)
     mocker.patch.object(sys, 'excepthook')
     mocker.patch.object(sys, 'unraisablehook')
+    mocker.patch.object(threading, 'excepthook')
 
 
 def patch_logger_config(mocker: MockerFixture, expected_log_level: str) -> None:
@@ -176,6 +178,7 @@ def test_multiple_downloads_with_output_file(mocker: MockerFixture, tmp_path: pa
 
     assert sys.excepthook == Log.trace_unhandled_exception          # pylint: disable=comparison-with-callable
     assert sys.unraisablehook == Log.trace_unraisable_exception     # pylint: disable=comparison-with-callable
+    assert threading.excepthook == Log.trace_thread_exception       # pylint: disable=comparison-with-callable
 
     httpserver.check()
     assert not os.listdir(tmp_path)

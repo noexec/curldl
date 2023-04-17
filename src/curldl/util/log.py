@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
 import traceback
 import types
 from typing import Type
@@ -15,9 +16,11 @@ class Log:
 
     @classmethod
     def setup_exception_logging_hooks(cls) -> None:
-        """Assigns exception logging hooks: :func:`sys.excepthook`, :func:`sys.unraisablehook`."""
+        """Assigns exception logging hooks: :func:`sys.excepthook`, :func:`sys.unraisablehook`,
+        :func:`threading.excepthook`."""
         sys.excepthook = cls.trace_unhandled_exception
         sys.unraisablehook = cls.trace_unraisable_exception
+        threading.excepthook = cls.trace_thread_exception
 
     @classmethod
     def trace_unhandled_exception(cls, exc_type: Type[BaseException], exc: BaseException,
@@ -32,14 +35,24 @@ class Log:
         cls._trace_exception_details(loglevel=logging.CRITICAL, exc=exc, exc_type=exc_type, trace_back=trace_back)
 
     @classmethod
-    def trace_unraisable_exception(cls, unraisable: sys.UnraisableHookArgs) -> None:
+    def trace_unraisable_exception(cls, exc_info: sys.UnraisableHookArgs) -> None:
         """Top-level logger for unraisable exceptions, can be assigned to :func:`sys.unraisablehook`
 
-        :param unraisable: container with the unraisable exception attributes
+        :param exc_info: container with unraisable exception attributes
         """
-        msg = f'{unraisable.err_msg}: {unraisable.object}' if unraisable.err_msg else str(unraisable.object)
-        cls._trace_exception_details(loglevel=logging.ERROR, exc=unraisable.exc_value, exc_type=unraisable.exc_type,
-                                     trace_back=unraisable.exc_traceback, msg=msg)
+        msg = f'{exc_info.err_msg}: {exc_info.object}' if exc_info.err_msg else str(exc_info.object)
+        cls._trace_exception_details(loglevel=logging.ERROR, exc=exc_info.exc_value, exc_type=exc_info.exc_type,
+                                     trace_back=exc_info.exc_traceback, msg=msg)
+
+    @classmethod
+    def trace_thread_exception(cls, exc_info: threading.ExceptHookArgs) -> None:
+        """Top-level logger for exceptions raised by :meth:`threading.Thread.start`
+
+        :param exc_info: container thread exception attributes
+        """
+        msg = str(exc_info.thread) if exc_info.thread else None
+        cls._trace_exception_details(loglevel=logging.ERROR, exc=exc_info.exc_value, exc_type=exc_info.exc_type,
+                                     trace_back=exc_info.exc_traceback, msg=msg)
 
     @classmethod
     def trace_exception(cls, exc: BaseException, msg: str) -> None:

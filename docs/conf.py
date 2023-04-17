@@ -55,6 +55,7 @@ intersphinx_mapping = {
 
 nitpick_ignore = [
     ('py:class', 'sys.UnraisableHookArgs'),
+    ('py:class', '_thread._ExceptHookArgs'),
     ('py:class', 'tqdm'),
     ('py:exc', 'argparse.ArgumentError'),
     ('py:exc', 'metadata.PackageNotFoundError'),

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
 
 import pytest
 from _pytest.logging import LogCaptureFixture
@@ -56,7 +57,7 @@ def test_trace_unhandled_exception(caplog: LogCaptureFixture, log_level: int) ->
 
 @pytest.mark.parametrize('log_level', [logging.WARNING, logging.DEBUG])
 def test_trace_unraisable_exception(caplog: LogCaptureFixture, mocker: MockerFixture, log_level: int) -> None:
-    """Verify appropriate log lines are produced when tracing an unhandled exception"""
+    """Verify appropriate log lines are produced when tracing an unraisable exception"""
     class DestructorRaiser:
         """Raises an (unraisable) exception in destructor"""
         def __del__(self) -> None:
@@ -75,6 +76,26 @@ def test_trace_unraisable_exception(caplog: LogCaptureFixture, mocker: MockerFix
     verify_debug_log_records(log_level, caplog.record_tuples)
 
 
+@pytest.mark.parametrize('log_level', [logging.WARNING, logging.DEBUG])
+def test_trace_thread_exception(caplog: LogCaptureFixture, mocker: MockerFixture, log_level: int) -> None:
+    """Verify appropriate log lines are produced when tracing a thread exception"""
+    def thread_raiser() -> None:
+        """Raise a thread exception that cannot be handled via try/except clause"""
+        raise ValueError('test_exception')
+
+    caplog.set_level(log_level)
+    mocker.patch.object(threading, 'excepthook')
+    threading.excepthook = Log.trace_thread_exception
+
+    thread = threading.Thread(target=thread_raiser, daemon=True, name='ThreadRaiser')
+    thread.start()
+    thread.join()
+    thread_str = str(thread).replace('stopped', 'started')
+
+    assert caplog.record_tuples[0] == (LOG_PACKAGE, logging.ERROR, thread_str + ': ValueError: test_exception')
+    verify_debug_log_records(log_level, caplog.record_tuples)
+
+
 def test_trace_unhandled_exception_type(mocker: MockerFixture) -> None:
     """Statically verify that the function is assignable to sys.excepthook (mypy)"""
     mocker.patch.object(sys, 'excepthook')
@@ -85,3 +106,9 @@ def test_trace_unraisable_exception_type(mocker: MockerFixture) -> None:
     """Statically verify that the function is assignable to sys.unraisablehook (mypy)"""
     mocker.patch.object(sys, 'unraisablehook')
     sys.unraisablehook = Log.trace_unraisable_exception
+
+
+def test_trace_thread_exception_type(mocker: MockerFixture) -> None:
+    """Statically verify that the function is assignable to sys.unraisablehook (mypy)"""
+    mocker.patch.object(threading, 'excepthook')
+    threading.excepthook = Log.trace_thread_exception
