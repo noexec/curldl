@@ -2,7 +2,6 @@
 import argparse
 import logging
 import os
-import sys
 import urllib.parse
 from importlib import metadata
 
@@ -17,7 +16,7 @@ class CommandLine:
 
     def __init__(self) -> None:
         """Initialize argument parser and unhandled exception hook"""
-        sys.excepthook = Log.trace_unhandled_exception
+        Log.setup_exception_logging_hooks()
         self.args = self._parse_arguments()
         log.debug('Configured: %s', self.args)
 

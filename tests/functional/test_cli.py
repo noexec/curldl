@@ -8,6 +8,7 @@ import os.path
 import pathlib
 import subprocess  # nosec
 import sys
+import threading
 from importlib import metadata
 
 import pytest
@@ -18,15 +19,18 @@ from pytest_mock import MockerFixture
 
 import curldl
 from curldl import cli
+from curldl.util import Log
 
 PACKAGE_NAME = curldl.__package__
 ENTRY_POINT = PACKAGE_NAME
 
 
 def patch_system_environment(mocker: MockerFixture, arguments: list[str]) -> None:
-    """Patch sys.argv and make sys.excepthook available for modification"""
+    """Patch sys.argv and make sys.excepthook and sys.unraisablehook available for modification"""
     mocker.patch.object(sys, 'argv', [PACKAGE_NAME] + arguments)
     mocker.patch.object(sys, 'excepthook')
+    mocker.patch.object(sys, 'unraisablehook')
+    mocker.patch.object(threading, 'excepthook')
 
 
 def patch_logger_config(mocker: MockerFixture, expected_log_level: str) -> None:
@@ -161,7 +165,8 @@ def test_download_multiple_files(mocker: MockerFixture, caplog: LogCaptureFixtur
 
 def test_multiple_downloads_with_output_file(mocker: MockerFixture, tmp_path: pathlib.Path,
                                              httpserver: HTTPServer) -> None:
-    """Verify that specifying output with multiple files results in exception and now download is attempted"""
+    """Verify that specifying output with multiple files results in exception and now download is attempted.
+    Also verify that exception hooks are set up."""
     arguments = ['-b', str(tmp_path), '-o', 'file.txt', '-l', 'critical',
                  httpserver.url_for('/file1.txt'), httpserver.url_for('/file2.txt')]
 
@@ -170,6 +175,10 @@ def test_multiple_downloads_with_output_file(mocker: MockerFixture, tmp_path: pa
 
     with pytest.raises(argparse.ArgumentError):
         cli.main()
+
+    assert sys.excepthook == Log.trace_unhandled_exception          # pylint: disable=comparison-with-callable
+    assert sys.unraisablehook == Log.trace_unraisable_exception     # pylint: disable=comparison-with-callable
+    assert threading.excepthook == Log.trace_thread_exception       # pylint: disable=comparison-with-callable
 
     httpserver.check()
     assert not os.listdir(tmp_path)
