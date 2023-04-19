@@ -57,6 +57,7 @@ test = [
 ]
 
 dev = [
+    "black",                # code formatter
     "build",                # packaging build frontend
     "ipython",              # interactive Python environment
     "pipdeptree",           # show packages dependency tree

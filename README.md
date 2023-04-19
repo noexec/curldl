@@ -3,6 +3,7 @@
 [![GitHub Workflow Status](https://github.com/noexec/curldl/actions/workflows/ci.yml/badge.svg)](https://github.com/noexec/curldl/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/noexec/curldl/branch/develop/graph/badge.svg?token=QOA9KZ9A44)](https://codecov.io/gh/noexec/curldl)
 [![Read the Docs](https://img.shields.io/readthedocs/curldl)](https://curldl.readthedocs.io/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![GitHub](https://img.shields.io/github/license/noexec/curldl)](https://github.com/noexec/curldl/blob/develop/LICENSE.md)
 
 
