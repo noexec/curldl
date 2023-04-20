@@ -130,13 +130,9 @@ jobs:
 
 
     test-platform-packages:
-        strategy:
-            matrix:
-                platform-image: [ubuntu-latest, ubuntu-20.04]
-
-        name: Test ${{ matrix.platform-image }} / platform / wheel
+        name: Test Linux / platform / wheel
         needs: build-dist
-        runs-on: ${{ matrix.platform-image }}
+        runs-on: ubuntu-latest
 
         steps:
             - name: Check out repository
@@ -149,10 +145,8 @@ jobs:
                   sudo -n apt-get update -y
                   sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
                   sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
-                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,werkzeug,wheel} black
-                  sudo -n apt-get install -y python3-{cairo,testresources}
-                  sudo -n apt-get install -y python3-pytest-{cov,pylint,sugar,xdist}
-                  sudo -n apt-get install -y python3-pytest-repeat || :
+                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,werkzeug,wheel,cairo} black
+                  sudo -n apt-get install -y python3-pytest-{cov,pylint,repeat,sugar,xdist}
 
             - name: Download package distribution
               uses: actions/download-artifact@v3
@@ -163,7 +157,6 @@ jobs:
             - name: Install package wheel and its platform-unavailable dependencies
               run: |
                   find src -mindepth 1 -delete
-                  python3 -m pip install --user 'pip>=21.0'
                   pip3 install --user $(echo dist/curldl-*.whl)'[test]'
                   pip3 check
 
@@ -172,7 +165,7 @@ jobs:
 
 
     test-dependency-sanity:
-        name: Test sanity on Linux / platform / wheel
+        name: Sanity on Linux / platform / wheel
         needs: build-dist
         runs-on: ubuntu-latest
 
