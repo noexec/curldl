@@ -148,7 +148,7 @@ jobs:
               run: |
                   sudo -n apt-get update -y
                   sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
-                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
+                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm} black
                   sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,werkzeug,wheel}
                   sudo -n apt-get install -y python3-pytest-{cov,pylint,sugar,xdist}
                   sudo -n apt-get install -y python3-pytest-repeat || :
@@ -219,9 +219,6 @@ jobs:
 
             - name: Install package in editable mode (temporarily) and its dependencies
               run: ./venv.sh install-venv
-
-            - name: Verify code style
-              run: ./venv.sh misc/scripts/run-black.sh --check
 
             - name: Build Sphinx documentation
               run: ./venv.sh misc/scripts/run-sphinx.sh
