@@ -123,18 +123,21 @@ def test_trace_thread_exception(
 
 
 def test_trace_unhandled_exception_type(mocker: MockerFixture) -> None:
-    """Statically verify that the function is assignable to sys.excepthook (mypy)"""
+    """Statically verify that the function is assignable to
+    ``sys.excepthook`` (mypy)"""
     mocker.patch.object(sys, "excepthook")
     sys.excepthook = Log.trace_unhandled_exception
 
 
 def test_trace_unraisable_exception_type(mocker: MockerFixture) -> None:
-    """Statically verify that the function is assignable to sys.unraisablehook (mypy)"""
+    """Statically verify that the function is assignable to
+    ``sys.unraisablehook`` (mypy)"""
     mocker.patch.object(sys, "unraisablehook")
     sys.unraisablehook = Log.trace_unraisable_exception
 
 
 def test_trace_thread_exception_type(mocker: MockerFixture) -> None:
-    """Statically verify that the function is assignable to sys.unraisablehook (mypy)"""
+    """Statically verify that the function is assignable to
+    ``sys.unraisablehook`` (mypy)"""
     mocker.patch.object(threading, "excepthook")
     threading.excepthook = Log.trace_thread_exception

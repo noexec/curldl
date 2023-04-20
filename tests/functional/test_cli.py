@@ -26,7 +26,8 @@ ENTRY_POINT = PACKAGE_NAME
 
 
 def patch_system_environment(mocker: MockerFixture, arguments: list[str]) -> None:
-    """Patch sys.argv and make sys.excepthook and sys.unraisablehook available for modification"""
+    """Patch ``sys.argv`` and make ``sys.excepthook`` and ``sys.unraisablehook``
+    available for modification"""
     mocker.patch.object(sys, "argv", [PACKAGE_NAME] + arguments)
     mocker.patch.object(sys, "excepthook")
     mocker.patch.object(sys, "unraisablehook")
@@ -34,7 +35,8 @@ def patch_system_environment(mocker: MockerFixture, arguments: list[str]) -> Non
 
 
 def patch_logger_config(mocker: MockerFixture, expected_log_level: str) -> None:
-    """Replace logging.basicConfig() with verifier of expected configured log level"""
+    """Replace ``logging.basicConfig()`` with verifier of expected configured log
+    level"""
 
     def logging_basic_config_mock(level: int) -> None:
         assert level == getattr(logging, expected_log_level.upper())
@@ -50,7 +52,8 @@ def patch_logger_config(mocker: MockerFixture, expected_log_level: str) -> None:
 def test_run_cli_module(
     use_entry_point: bool, arguments: str, should_succeed: bool
 ) -> None:
-    """Verify that running the module via entry point and via __main__.py works, test success and failure"""
+    """Verify that running the module via entry point and via ``__main__.py`` works,
+    test success and failure"""
     package_base_path = pathlib.Path(inspect.getfile(curldl)).parent / os.path.pardir
     command = ENTRY_POINT if use_entry_point else f"python -m {PACKAGE_NAME}"
     result = subprocess.run(
@@ -75,7 +78,7 @@ def test_get_version(
     argument: str,
     use_metadata: bool,
 ) -> None:
-    """Verify version number is correctly retrieved from both package and TOML sources"""
+    """Verify version number is correctly retrieved from both package metadata"""
     mock_version = "1.0.0.mock"
 
     def metadata_version_mock(distribution_name: str) -> str:
@@ -113,7 +116,8 @@ def test_download_file(
     verbose: bool,
     long_opt: bool,
 ) -> None:
-    """Verify an example file is successfully downloaded using all supported CLI arguments"""
+    """Verify an example file is successfully downloaded using all supported
+    CLI arguments"""
     file_data, file_path = b"x" * 128, tmp_path / "dir" / "file.txt"
     file_digest = "150fa3fbdc899bd0b8f95a9fb6027f564d953762"
 
@@ -167,8 +171,8 @@ def test_download_multiple_files(
     specify_output_size: bool,
     specify_output_digest: bool,
 ) -> None:
-    """Verify that multiple file arguments are downloaded and verification functions correctly,
-    (including that digest verification is attempted on all files)"""
+    """Verify that multiple file arguments are downloaded and verification functions
+    correctly, (including that digest verification is attempted on all files)"""
     caplog.set_level(logging.DEBUG)
 
     url_count = 5
@@ -211,8 +215,8 @@ def test_download_multiple_files(
 def test_multiple_downloads_with_output_file(
     mocker: MockerFixture, tmp_path: pathlib.Path, httpserver: HTTPServer
 ) -> None:
-    """Verify that specifying output with multiple files results in exception and now download is attempted.
-    Also verify that exception hooks are set up."""
+    """Verify that specifying output with multiple files results in exception and no
+    download is attempted. Also verify that exception hooks are set up."""
     arguments = [
         "-b",
         str(tmp_path),
@@ -230,15 +234,10 @@ def test_multiple_downloads_with_output_file(
     with pytest.raises(argparse.ArgumentError):
         cli.main()
 
-    assert (
-        sys.excepthook == Log.trace_unhandled_exception
-    )  # pylint: disable=comparison-with-callable
-    assert (
-        sys.unraisablehook == Log.trace_unraisable_exception
-    )  # pylint: disable=comparison-with-callable
-    assert (
-        threading.excepthook == Log.trace_thread_exception
-    )  # pylint: disable=comparison-with-callable
+    # pylint: disable=comparison-with-callable
+    assert sys.excepthook == Log.trace_unhandled_exception
+    assert sys.unraisablehook == Log.trace_unraisable_exception
+    assert threading.excepthook == Log.trace_thread_exception
 
     httpserver.check()
     assert not os.listdir(tmp_path)

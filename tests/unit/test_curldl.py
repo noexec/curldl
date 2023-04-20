@@ -50,8 +50,9 @@ def make_range_response_handler(
     statuses: list[bool] | None = None,
     timestamp: int | float | None = None,
 ) -> Callable[[Request], Response]:
-    """Create werkzeug handler that handles regular (200) or byte range (206/416) requests.
-    If timestamp is not specified, different timestamp is sent for each request"""
+    """Create ``werkzeug`` handler that handles regular (200) or byte range (206/416)
+    requests. If timestamp is not specified, different timestamp is sent for each
+    request"""
     status_idx = -1
 
     def range_response_handler_cb(request: Request) -> Response:
@@ -168,7 +169,8 @@ def test_successful_download_after_failure(
     retries_left = 5
 
     def eventual_response_handler_cb(request: Request) -> Response:
-        """Fail curl with a redirect in first RETRY_ATTEMPTS-1 requests, then respond"""
+        """Fail curl with a redirect in first ``RETRY_ATTEMPTS-1`` requests,
+        then respond"""
         nonlocal retries_left
         retries_left -= 1
         if retries_left != 0:
@@ -239,7 +241,8 @@ def test_partial_download(
     verify_file: bool,
     timestamp: int | None,
 ) -> None:
-    """Download a partial download that succeeds after a rollback, possibly with unchanged timestamp"""
+    """Download a partial download that succeeds after a rollback, possibly with
+    unchanged timestamp"""
     caplog.set_level(logging.DEBUG)
 
     file_data = os.urandom(size)
@@ -322,7 +325,8 @@ def test_repeated_download(
     timestamp1: int,
     timestamp2: int | float,
 ) -> None:
-    """One download after another, with a possibly unmodified source file; also verifies User-Agent header"""
+    """One download after another, with a possibly unmodified source file;
+    also verifies ``User-Agent`` header"""
     caplog.set_level(logging.DEBUG)
     dl = curldl.Curldl(basedir=tmp_path, verbose=True, user_agent="curl/0.0.0")
     data1, data2 = os.urandom(size), os.urandom(size)
@@ -333,7 +337,8 @@ def test_repeated_download(
         """Create werkzeug handler for If-Modified-Since request header"""
 
         def response_handler_cb(request: Request) -> Response:
-            """Returns 304 Not Modified response if timestamp is not newer than one in request"""
+            """Returns 304 Not Modified response if timestamp is not newer than one in
+            request"""
             assert request.user_agent.string == "curl/0.0.0"
             if (
                 request.if_modified_since
@@ -349,7 +354,8 @@ def test_repeated_download(
         return response_handler_cb
 
     def download_and_possibly_verify(data: bytes) -> None:
-        """Download file and verify its size/digest according to test parameter and expected data"""
+        """Download file and verify its size/digest according to test parameter and
+        expected data"""
         dl.get(
             httpserver.url_for("/file.txt"),
             "file.txt",
@@ -457,12 +463,8 @@ def test_disallowed_schemes(
     scheme = getattr(pycurl, "PROTO_" + scheme_str.upper())
     default_enabled = scheme in curldl.Curldl.DEFAULT_ALLOWED_PROTOCOLS
     assert (
-        bool(
-            curldl.Curldl(
-                basedir=tmp_path
-            )._allowed_protocols_bitmask  # pylint: disable=protected-access
-            & scheme
-        )
+        # pylint: disable=protected-access
+        bool(curldl.Curldl(basedir=tmp_path)._allowed_protocols_bitmask & scheme)
         == default_enabled
     )
 
@@ -492,7 +494,8 @@ def test_file_scheme_partial_download(
     disable_resume: bool,
     allowed_protocols: int,
 ) -> None:
-    """Verify that a partial download via file:// URL is successful (or not) once FILE scheme is allowed"""
+    """Verify that a partial download via file:// URL is successful (or not) once FILE
+    scheme is allowed"""
     caplog.set_level(logging.DEBUG)
     if disable_resume:
         mocker.patch.object(
@@ -576,11 +579,11 @@ def test_configuration_callback(tmp_path: pathlib.Path, httpserver: HTTPServer) 
     """Verify that configuration callback is invoked by Curldl and has effect"""
 
     def curl_configuration_cb(curl: pycurl.Curl) -> None:
-        """Changes User-Agent header"""
+        """Change ``User-Agent`` header"""
         curl.setopt(pycurl.USERAGENT, "changed-user-agent")
 
     def response_handler_cb(request: Request) -> Response:
-        """Returns 304 Not Modified response if timestamp is not newer than one in request"""
+        """Return 304 Not Modified response if timestamp is not newer than in request"""
         assert request.user_agent.string == "changed-user-agent"
         return Response(b"xyz")
 

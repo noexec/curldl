@@ -22,19 +22,21 @@ class FileSystem:
 
         :param basedir: base directory path
         :param rel_path: path relative to base directory
-        :raises ValueError: relative path escapes base directory before or after symlink resolution,
-            resulting path is a dangling symlink, is not a file or a symlink to file
+        :raises ValueError: relative path escapes base directory before or after symlink
+            resolution, resulting path is a dangling symlink, is not a file or a symlink
+            to file
         """
         base = os.path.abspath(basedir)
         path = os.path.abspath(os.path.join(basedir, rel_path))
         base_real, path_real = os.path.realpath(base), os.path.realpath(path)
 
-        # os.path.commonpath() also raises ValueError for different-drive paths on Windows
+        # os.path.commonpath() also raises ValueError for different-drive Windows paths
         if base != os.path.commonpath((base, path)):
             raise ValueError(f"Relative path {rel_path} escapes base path {base}")
         if base_real != os.path.commonpath((base_real, path_real)):
             raise ValueError(
-                f"Relative path {rel_path} escapes base path {base} after resolving symlinks"
+                f"Relative path {rel_path} escapes base path {base} "
+                "after resolving symlinks"
             )
         if base == path or base_real == path_real:
             raise ValueError(f"Relative path {rel_path} does not extend {base}")
@@ -68,14 +70,16 @@ class FileSystem:
         size: int | None = None,
         digests: dict[str, str] | None = None,
     ) -> None:
-        """Verify file size and digests and raise :class:`ValueError` in case of mismatch.
-        ``digests`` is a dict of hash algorithms and digests to check
+        """Verify file size and digests and raise :class:`ValueError` in case of
+        mismatch. ``digests`` is a dict of hash algorithms and digests to check
         (see :func:`curldl.util.crypt.Cryptography.verify_digest`).
 
         :param path: input file path
         :param size: expected file size in bytes, or ``None`` to ignore
-        :param digests: mapping of digest algorithms to expected hexadecimal digest strings, or ``None`` to ignore
-        :raises ValueError: not a file or file size mismatch or one of digests fails verification
+        :param digests: mapping of digest algorithms to expected hexadecimal digest
+            strings, or ``None`` to ignore
+        :raises ValueError: not a file or file size mismatch or one of digests fails
+            verification
         """
         if size is not None:
             cls.verify_size(path, size=size)
@@ -84,7 +88,8 @@ class FileSystem:
 
     @classmethod
     def verify_size(cls, path: str | os.PathLike[str], size: int) -> None:
-        """Verify file size and raise :class:`ValueError` in case of mismatch or if not a file.
+        """Verify file size and raise :class:`ValueError` in case of mismatch or
+        if not a file.
 
         :param path: input file path
         :param size: expected file size in bytes
@@ -104,7 +109,8 @@ class FileSystem:
         """Returns file size, or ``default`` if it does not exist or is not a file.
 
         :param path: input file path
-        :param default: value to return if ``path`` does not exist or is not a file (e.g., a directory)
+        :param default: value to return if ``path`` does not exist or is not a file
+            (e.g., a directory)
         :return: input file size
         """
         return os.path.getsize(path) if os.path.isfile(path) else default
@@ -113,7 +119,8 @@ class FileSystem:
     def set_file_timestamp(
         cls, path: str | os.PathLike[str], timestamp: int | float
     ) -> None:
-        """Sets file timestamp to a POSIX timestamp. If timestamp is negative, does nothing.
+        """Sets file timestamp to a POSIX timestamp. If timestamp is negative,
+        does nothing.
 
         :param path: filesystem path, must exist; symlinks are followed
         :param timestamp: POSIX UTC-based timestamp to store as last-modified

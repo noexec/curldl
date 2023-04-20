@@ -16,8 +16,8 @@ class Log:
 
     @classmethod
     def setup_exception_logging_hooks(cls) -> None:
-        """Assigns exception logging hooks: :func:`sys.excepthook`, :func:`sys.unraisablehook`,
-        :func:`threading.excepthook`."""
+        """Assigns exception logging hooks: :func:`sys.excepthook`,
+        :func:`sys.unraisablehook`, :func:`threading.excepthook`."""
         sys.excepthook = cls.trace_unhandled_exception
         sys.unraisablehook = cls.trace_unraisable_exception
         threading.excepthook = cls.trace_thread_exception
@@ -29,8 +29,9 @@ class Log:
         exc: BaseException,
         trace_back: types.TracebackType | None,
     ) -> None:
-        """Top-level logger for unhandled exceptions, can be assigned to :func:`sys.excepthook`.
-        The exception is logged at ``CRITICAL`` level, ad traceback at ``DEBUG`` level.
+        """Top-level logger for unhandled exceptions, can be assigned
+        to :func:`sys.excepthook`. The exception is logged at ``CRITICAL`` level,
+        and traceback at ``DEBUG`` level.
 
         :param exc_type: exception type (expected: ``exc.__class__``)
         :param exc: exception object
@@ -42,7 +43,8 @@ class Log:
 
     @classmethod
     def trace_unraisable_exception(cls, exc_info: sys.UnraisableHookArgs) -> None:
-        """Top-level logger for unraisable exceptions, can be assigned to :func:`sys.unraisablehook`
+        """Top-level logger for unraisable exceptions, can be assigned
+        to :func:`sys.unraisablehook`
 
         :param exc_info: container with unraisable exception attributes
         """
@@ -101,7 +103,8 @@ class Log:
     ) -> None:
         """Generic logger for exception details
 
-        :param loglevel: logging level for main message, auxiliary message is logged at ``DEBUG`` level
+        :param loglevel: logging level for main message, auxiliary message is logged
+            at ``DEBUG`` level
         :param exc: exception object
         :param exc_type: exception type (class)
         :param trace_back: exception traceback

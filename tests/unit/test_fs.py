@@ -192,7 +192,8 @@ def test_create_directory_for_bad_path(tmp_path: pathlib.Path) -> None:
 def test_verify_size_and_digests(
     tmp_path: pathlib.Path, algos: list[str] | None
 ) -> None:
-    """Verify arbitrary file size and multiple digests, also verify str, None and uppercase arguments"""
+    """Verify arbitrary file size and multiple digests, also verify ``str``, ``None``
+    and uppercase arguments"""
     create_simple_file(tmp_file_path := tmp_path / "file.txt", 253)
     base_digests = {
         "sha1": "DE4FCC1C5AFF0C2F455660a4548916c22a817f68",
@@ -316,7 +317,8 @@ def test_set_negative_file_timestamp(
 def test_set_directory_timestamp(
     tmp_path: pathlib.Path, caplog: LogCaptureFixture, tmp_path_timestamp: int | float
 ) -> None:
-    """Set arbitrary integer and floating-point directory timestamp, also verify str argument and cover DEBUG log"""
+    """Set arbitrary integer and floating-point directory timestamp, also verify ``str``
+    argument and cover ``DEBUG`` log"""
     caplog.set_level(logging.DEBUG)
     FileSystem.set_file_timestamp(str(tmp_path), tmp_path_timestamp)
     tmp_file_stat = os.stat(tmp_path)

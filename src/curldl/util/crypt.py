@@ -16,10 +16,12 @@ class Cryptography:
     @staticmethod
     def get_available_digests() -> list[str]:
         """Returns list of fixed-size digest algorithms in :mod:`hashlib`.
-        Uses :data:`hashlib.algorithms_guaranteed` because :data:`hashlib.algorithms_available`
-        may result in runtime errors due to deprecated algorithms being hidden by OpenSSL.
+        Uses :data:`hashlib.algorithms_guaranteed`
+        because :data:`hashlib.algorithms_available` may result in runtime errors
+        due to deprecated algorithms being hidden by OpenSSL.
 
-        :return: guaranteed algorithms in :mod:`hashlib` that produce a fixed-size digest
+        :return: guaranteed algorithms in :mod:`hashlib` that produce a fixed-size
+            digest
         """
         return sorted(
             algo
@@ -46,7 +48,8 @@ class Cryptography:
         )
         if hash_obj.digest_size * 2 != len(digest):
             raise ValueError(
-                f"Expected {digest_name} for {path} has length != {hash_obj.digest_size} B"
+                f"Expected {digest_name} for {path} has length != "
+                f"{hash_obj.digest_size} B"
             )
 
         with open(path, "rb") as path_obj:

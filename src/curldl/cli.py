@@ -42,7 +42,8 @@ class CommandLine:
     def _parse_arguments(cls) -> argparse.Namespace:
         """Parse command-line arguments.
 
-        :return: arguments after configuring the logger and possibly inferring other arguments
+        :return: arguments after configuring the logger and possibly inferring
+            other arguments
         """
         parser = argparse.ArgumentParser(
             prog=__package__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -116,7 +117,8 @@ class CommandLine:
         :param output_arg: `output` argument to infer
         :param args: arguments to extend
         :return: input arguments after inferring missing ones
-        :raises ``argparse.ArgumentError``: multiple URLs are specified with ``output`` argument
+        :raises ``argparse.ArgumentError``: multiple URLs are specified with ``output``
+            argument
         """
         if not args.output:
             args.output = [
@@ -151,16 +153,19 @@ class CommandLine:
 
     @staticmethod
     def _get_package_version() -> str:
-        """Retrieve package version from metadata, raising error for uninstalled development sources.
+        """Retrieve package version from metadata, raising error for uninstalled
+        development sources.
 
         :return: package version string
-        :raises metadata.PackageNotFoundError: version is not available, e.g. when package is not installed
+        :raises metadata.PackageNotFoundError: version is not available, e.g. when
+            package is not installed
         """
         try:
             return metadata.version(__package__)
         except metadata.PackageNotFoundError:
             log.error(
-                "Generated version not available, install package as usual or in editable mode"
+                "Generated version not available, install package as usual or in "
+                "editable mode"
             )
             raise
 

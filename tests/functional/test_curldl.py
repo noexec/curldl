@@ -54,7 +54,8 @@ def test_file_downloads(
     verbose: bool,
     log_level: int,
 ) -> None:
-    """One or more successful or 404, one-shot or sequence, safe or unsafe file download attempts"""
+    """One or more successful or 404, one-shot or sequence, safe or unsafe file
+    download attempts"""
     caplog.set_level(log_level)
     dl = curldl.Curldl(
         basedir=tmp_path / "base", progress=progress, verbose=verbose, retry_attempts=0

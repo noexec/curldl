@@ -10,7 +10,8 @@ from .test_fs import create_simple_file
 
 
 def test_get_available_digests() -> None:
-    """Verify that returned digests are exhaustive list of simple-constructible hashlib digests"""
+    """Verify that returned digests are exhaustive list of simple-constructible
+    hashlib digests"""
     algos = set(Cryptography.get_available_digests())
     for algo in algos:
         digest = hashlib.new(algo)
@@ -43,7 +44,8 @@ def test_verify_digest(
     digest: str,
     chunk_size: int,
 ) -> None:
-    """Verify arbitrary correct and incorrect value / length file digest, also verify str argument"""
+    """Verify arbitrary correct and incorrect value / length file digest,
+    also verify ``str`` argument"""
     create_simple_file(file_path := tmp_path / "file.txt", 1500)
     mocker.patch.object(Cryptography, "FILE_CHUNK_BYTES", chunk_size)
 

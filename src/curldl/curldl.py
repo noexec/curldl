@@ -24,13 +24,16 @@ class Curldl:
 
         import curldl, os
         dl = curldl.Curldl(basedir='downloads', progress=True)
-        dl.get('https://kernel.org/pub/linux/kernel/Historic/linux-0.01.tar.gz', 'linux-0.01.tar.gz',
-               size=73091, digests={'sha1': '566b6fb6365e25f47b972efa1506932b87d3ca7d'})
+        dl.get('https://kernel.org/pub/linux/kernel/Historic/linux-0.01.tar.gz',
+               'linux-0.01.tar.gz', size=73091,
+               digests={'sha1': '566b6fb6365e25f47b972efa1506932b87d3ca7d'})
         assert os.path.exists('downloads/linux-0.01.tar.gz')
 
-    For a more in-depth guide, refer to the package documentation.
+    For a more in-depth guide, refer to package documentation.
     """
 
+    # TODO: Add once available: E_HTTP2_STREAM, E_HTTP3, E_QUIC_CONNECT_ERROR,
+    #                           E_PROXY, E_UNRECOVERABLE_POLL
     DOWNLOAD_RETRY_ERRORS = {
         pycurl.E_COULDNT_RESOLVE_PROXY,
         pycurl.E_COULDNT_RESOLVE_HOST,
@@ -49,8 +52,7 @@ class Curldl:
         pycurl.E_GOT_NOTHING,
         pycurl.E_SEND_ERROR,
         pycurl.E_RECV_ERROR,
-        pycurl.E_SSH
-        # TODO: Add once available: E_HTTP2_STREAM, E_HTTP3, E_QUIC_CONNECT_ERROR, E_PROXY, E_UNRECOVERABLE_POLL
+        pycurl.E_SSH,
     }
     """``libcurl`` errors accepted by download retry policy"""
 
@@ -61,12 +63,14 @@ class Curldl:
         pycurl.PROTO_FTPS,
         pycurl.PROTO_SFTP,
     }
-    """URL schemes allowed by default, can be changed with ``allowed_protocols_bitmask`` constructor parameter"""
+    """URL schemes allowed by default, can be changed with ``allowed_protocols_bitmask``
+    constructor parameter"""
 
     RESUME_FROM_SCHEMES = {"http", "https", "ftp", "ftps", "file"}
-    """URL schemes supported by ``pycurl.RESUME_FROM``. SFTP is not included because its implementation is buggy
-    (total download size is reduced twice by initial size). Scheme is extracted via :mod:`urllib` from initial URL,
-    but there are no security implications since it is only used for removing partial downloads."""
+    """URL schemes supported by ``pycurl.RESUME_FROM``. SFTP is not included because its
+    implementation is buggy (total download size is reduced twice by initial size).
+    Scheme is extracted via :mod:`urllib` from initial URL, but there are no security
+    implications since it is only used for removing partial downloads."""
 
     VERBOSE_LOGGING = {
         pycurl.INFOTYPE_TEXT: "TEXT",
@@ -91,26 +95,31 @@ class Curldl:
         always_keep_part_bytes: int = 64 * 1024**2,
         curl_config_callback: Callable[[pycurl.Curl], None] | None = None,
     ) -> None:
-        """Initialize a PycURL-based downloader with a single :class:`pycurl.Curl` instance
-        that is reused and reconfigured for each download. The resulting downloader
-        object should be therefore not shared among several threads.
+        """Initialize a PycURL-based downloader with a single :class:`pycurl.Curl`
+        instance that is reused and reconfigured for each download. The resulting
+        downloader object should be therefore not shared among several threads.
 
         :param basedir: base directory path for downloaded file
         :param progress: show progress bar on :data:`sys.stderr`
-        :param verbose: enable verbose logging information from ``libcurl`` at ``DEBUG`` level
+        :param verbose: enable verbose logging information from ``libcurl`` at ``DEBUG``
+            level
         :param user_agent: ``User-Agent`` header for HTTP(S) protocols
-        :param retry_attempts: number of download retry attempts in case of failure in :attr:`DOWNLOAD_RETRY_ERRORS`
+        :param retry_attempts: number of download retry attempts in case of failure
+            in :attr:`DOWNLOAD_RETRY_ERRORS`
         :param retry_wait_sec: seconds to wait between download retry attempts
         :param timeout_sec: timeout seconds for ``libcurl`` operation
         :param max_redirects: maximum number of redirects allowed in HTTP(S) protocols
-        :param allowed_protocols_bitmask: bitmask of allowed protocols, e.g. ``pycurl.PROTO_HTTP``; default is
-            `or` of values in :attr:`DEFAULT_ALLOWED_PROTOCOLS`
-        :param min_part_bytes: partial downloads below this size are removed after unsuccessful download attempt;
-            set to ``0`` to disable removal of unsuccessful partial downloads
-        :param always_keep_part_bytes: do not remove partial downloads of this size or larger when resuming download
-            even if no size or digest is provided for verification;
-            set to ``0`` to never remove existing partial downloads
-        :param curl_config_callback: pass a callback to further configure a :class:`pycurl.Curl` object
+        :param allowed_protocols_bitmask: bitmask of allowed protocols, e.g.
+            ``pycurl.PROTO_HTTP``; default is `or` of values
+            in :attr:`DEFAULT_ALLOWED_PROTOCOLS`
+        :param min_part_bytes: partial downloads below this size are removed after
+            unsuccessful download attempt; set to ``0`` to disable removal of
+            unsuccessful partial downloads
+        :param always_keep_part_bytes: do not remove partial downloads of this size or
+            larger when resuming download even if no size or digest is provided for
+            verification; set to ``0`` to never remove existing partial downloads
+        :param curl_config_callback: pass a callback to further configure
+            a :class:`pycurl.Curl` object
         """
         self._basedir = basedir
 
@@ -136,16 +145,17 @@ class Curldl:
     def _get_configured_curl(
         self, url: str, path: str, *, timestamp: int | float | None = None
     ) -> tuple[pycurl.Curl, int]:
-        """Reconfigure :class:`pycurl.Curl` instance for requested download and return the instance.
-        Methods should not work with ``self._unconfigured_curl`` directly, only with instance returned
-        by this method.
+        """Reconfigure :class:`pycurl.Curl` instance for requested download and return
+        the instance. Methods should not work with ``self._unconfigured_curl`` directly,
+        only with instance returned by this method.
 
         :param url: URL to download
         :param path: resolved download file path
-        :param timestamp: `last-modified` timestamp of an already downloaded ``path``, if it exists;
-            used for skipping `not-modified-since` downloads with HTTP(S), FTP(S), FILE and RTSP protocols
-        :return: :class:`pycurl.Curl` instance configured for requested download and initial download offset
-            (i.e., file size to resume)
+        :param timestamp: `last-modified` timestamp of an already downloaded ``path``,
+            if it exists; used for skipping `not-modified-since` downloads with HTTP(S),
+            FTP(S), FILE and RTSP protocols
+        :return: :class:`pycurl.Curl` instance configured for requested download and
+            initial download offset (i.e., file size to resume)
         """
         curl = self._unconfigured_curl
         curl.reset()
@@ -201,8 +211,10 @@ class Curldl:
         """Complete pycurl.Curl configuration and start downloading.
 
         :param curl: configured :class:`pycurl.Curl` instance
-        :param write_stream: output stream to write to (a file opened in binary write mode)
-        :param progress_bar: progress bar to use; :func:`XFERINFOFUNCTION` is configured if enabled
+        :param write_stream: output stream to write to (a file opened in binary write
+            mode)
+        :param progress_bar: progress bar to use; :func:`XFERINFOFUNCTION` is configured
+            if enabled
         """
         curl.setopt(pycurl.WRITEDATA, write_stream)
 
@@ -228,11 +240,14 @@ class Curldl:
         def curl_progress_cb(
             download_total: int, downloaded: int, upload_total: int, uploaded: int
         ) -> None:
-            """Progress callback for :func:`XFERINFOFUNCTION`, only called if :data:`pycurl.NOPROGRESS` is ``0``.
+            """Progress callback for :func:`XFERINFOFUNCTION`, only called
+            if :data:`pycurl.NOPROGRESS` is ``0``.
 
-            :param download_total: total bytes to download; initial file size is not included if resuming;
-                equal to ``0`` when download is just being started and download size is not yet available
-            :param downloaded: bytes downloaded so far; initial file size is not included if resuming
+            :param download_total: total bytes to download; initial file size is not
+                included if resuming; equal to ``0`` when download is just being started
+                and download size is not yet available
+            :param downloaded: bytes downloaded so far; initial file size is not
+                included if resuming
             :param upload_total: unused
             :param uploaded: unused
             """
@@ -244,9 +259,11 @@ class Curldl:
 
     @classmethod
     def _curl_debug_cb(cls, debug_type: int, debug_msg: bytes) -> None:
-        """Callback for :func:`DEBUGFUNCTION` that logs ``libcurl`` messages at ``DEBUG`` level.
+        """Callback for :func:`DEBUGFUNCTION` that logs ``libcurl`` messages at
+        ``DEBUG`` level.
 
-        :param debug_type: :class:`pycurl.Curl`-supplied info type, e.g. ``pycurl.INFOTYPE_HEADER_IN``
+        :param debug_type: :class:`pycurl.Curl`-supplied info type, e.g.
+            ``pycurl.INFOTYPE_HEADER_IN``
         :param debug_msg: :class:`pycurl.Curl`-supplied debug message
         """
         debug_type = cls.VERBOSE_LOGGING.get(debug_type)
@@ -263,15 +280,17 @@ class Curldl:
         size: int | None = None,
         digests: dict[str, str] | None = None,
     ) -> None:
-        """Download a URL to ``basedir``-relative path and verify its expected size and digests.
-        Resume a partial download with ``.part`` extension if exists and supported by protocol,
-        and retry failures according to retry policy. The downloaded file is removed in case of
-        size or digest mismatch, and :class:`ValueError` is raised.
+        """Download a URL to ``basedir``-relative path and verify its expected size and
+        digests. Resume a partial download with ``.part`` extension if exists and
+        supported by protocol, and retry failures according to retry policy.
+        The downloaded file is removed in case of size or digest mismatch,
+        and :class:`ValueError` is raised.
 
         :param url: URL to download
         :param rel_path: ``basedir``-relative output file path
         :param size: expected file size in bytes, or ``None`` to ignore
-        :param digests: mapping of digest algorithms to expected hexadecimal digest strings, or ``None`` to ignore
+        :param digests: mapping of digest algorithms to expected hexadecimal digest
+            strings, or ``None`` to ignore
             (see :func:`curldl.util.fs.FileSystem.verify_size_and_digests`)
         :raises ValueError: relative path escapes base directory or is otherwise unsafe
             (see :func:`curldl.util.fs.FileSystem.verify_rel_path_is_safe`),
@@ -297,7 +316,8 @@ class Curldl:
         if os.path.exists(path_partial):
             if self._get_url_scheme(url) not in self.RESUME_FROM_SCHEMES:
                 log.info(
-                    "Removing partial download of %s since resume is not supported for URL",
+                    "Removing partial download of %s since "
+                    "resume is not supported for URL",
                     path,
                 )
                 os.remove(path_partial)
@@ -307,7 +327,8 @@ class Curldl:
                 and os.path.getsize(path_partial) < self._always_keep_part_bytes
             ):
                 log.info(
-                    "Removing partial download of %s since no size/digest to compare to",
+                    "Removing partial download of %s since no size/digest "
+                    "to compare to",
                     path,
                 )
                 os.remove(path_partial)
@@ -367,19 +388,24 @@ class Curldl:
 
         :param url: URL to download
         :param path: resolved path of a partial download file
-        :param timestamp: last-modified timestamp of an already downloaded ``path``, if it exists
-        :param description: description string for progress bar (e.g., base name of downloaded file)
-        :raises pycurl.error: PycURL error when downloading, may result in a retry according to policy
+        :param timestamp: last-modified timestamp of an already downloaded ``path``,
+            if it exists
+        :param description: description string for progress bar
+            (e.g., base name of downloaded file)
+        :raises pycurl.error: PycURL error when downloading, may result in a retry
+            according to policy
         """
         curl, initial_size = self._get_configured_curl(url, path, timestamp=timestamp)
 
         def log_partial_download(
             message_prefix: str, *, error: pycurl.error | None = None
         ) -> None:
-            """Log information about partially downloaded file at ``INFO`` or ``ERROR`` log level.
+            """Log information about partially downloaded file at ``INFO`` or ``ERROR``
+            log level.
 
             :param message_prefix: log message prefix
-            :param error: PycURL exception, implies ``ERROR`` log level"""
+            :param error: PycURL exception, implies ``ERROR`` log level
+            """
             if log.isEnabledFor(log_level := logging.ERROR if error else logging.INFO):
                 log.log(
                     log_level,
@@ -418,7 +444,8 @@ class Curldl:
         FileSystem.set_file_timestamp(path, curl.getinfo(pycurl.INFO_FILETIME))
 
     def _prepare_full_path(self, rel_path: str) -> str:
-        """Verify that ``basedir``-relative path is safe and create the required directories.
+        """Verify that ``basedir``-relative path is safe and create the required
+        directories.
 
         :param rel_path: ``basedir``-relative path
         :return: resulting complete path
@@ -437,9 +464,11 @@ class Curldl:
         """Format response code and description from cURL with a possible error.
 
         :param curl: :class:`pycurl.Curl` instance to extract response code from
-        :param url: a URL to extract scheme protocol from if ``pycurl.EFFECTIVE_URL`` is unavailable
+        :param url: a URL to extract scheme protocol from if ``pycurl.EFFECTIVE_URL``
+            is unavailable
         :param error: PycURL exception instance
-        :return: formatted string that includes a response code and its meaning, if available
+        :return: formatted string that includes a response code and its meaning,
+            if available
         """
         scheme = cls._get_url_scheme(curl.getinfo(pycurl.EFFECTIVE_URL) or url)
         descr = "No Status"
@@ -468,7 +497,8 @@ class Curldl:
         return urllib.parse.urlparse(url).scheme.lower()
 
     def _discard_file(self, path: str, *, force_remove: bool = False) -> None:
-        """If file size is below a threshold, it is removed. This is also done if force_remove is True.
+        """If file size is below a threshold, it is removed. This is also done if
+        ``force_remove`` is True.
 
         :param path: file path to remove if its size is below ``min_part_bytes``
         :param force_remove: unconditionally remove the file
@@ -476,7 +506,8 @@ class Curldl:
         file_size = os.path.getsize(path)
         if force_remove or file_size < self._min_part_bytes:
             log.debug(
-                "Removing %s since size of %s B is below threshold or removal requested",
+                "Removing %s since size of %s B is below threshold "
+                "or removal requested",
                 path,
                 f"{file_size:,}",
             )
