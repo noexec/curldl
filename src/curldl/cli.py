@@ -6,7 +6,7 @@ import urllib.parse
 from importlib import metadata
 
 from curldl import Curldl
-from curldl.util import Log, Cryptography
+from curldl.util import Cryptography, Log
 
 log = logging.getLogger(__name__)
 

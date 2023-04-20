@@ -4,6 +4,7 @@
 [![codecov](https://codecov.io/gh/noexec/curldl/branch/develop/graph/badge.svg?token=QOA9KZ9A44)](https://codecov.io/gh/noexec/curldl)
 [![Read the Docs](https://img.shields.io/readthedocs/curldl)](https://curldl.readthedocs.io/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/imports-isort-1674b1.svg?labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![GitHub](https://img.shields.io/github/license/noexec/curldl)](https://github.com/noexec/curldl/blob/develop/LICENSE.md)
 
 

@@ -7,7 +7,7 @@ import operator
 import os.path
 import urllib.parse
 from functools import reduce
-from typing import Callable, BinaryIO, NoReturn
+from typing import BinaryIO, Callable, NoReturn
 
 import pycurl
 import tenacity

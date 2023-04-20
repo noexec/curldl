@@ -6,6 +6,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from curldl.util import Cryptography
+
 from .test_fs import create_simple_file
 
 

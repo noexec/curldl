@@ -10,9 +10,10 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 from pytest_httpserver import HTTPServer
 
-from unit.test_curldl import compute_hex_digest, read_file_content
 import curldl
 from curldl import util
+
+from ..unit.test_curldl import compute_hex_digest, read_file_content
 
 
 @pytest.mark.parametrize(

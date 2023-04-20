@@ -1,7 +1,6 @@
 import subprocess  # nosec
 from importlib import metadata
 
-
 project = "curldl"
 copyright = "2023, Michael Orlov"
 
