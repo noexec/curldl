@@ -11,6 +11,7 @@ dependencies:
     - tenacity>=6.2.0
     - tqdm>=4.50.0
     # testing dependencies
+    - black
     - pytest
     - pytest-cov
     - pytest-httpserver
@@ -24,5 +25,7 @@ dependencies:
     # editable install and unsatisfied runtime dependencies
     - pip
     - pip:
+        - pytest-black-ng
+        - pytest-isort
         - types-tqdm
         - -e ../..

@@ -161,7 +161,7 @@ warn_return_any = true
 
 
 [tool.black]
-exclude = '/_version\.py$'
+exclude = '[\\/]_version\.py$'
 
 
 [tool.isort]

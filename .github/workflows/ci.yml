@@ -148,8 +148,9 @@ jobs:
               run: |
                   sudo -n apt-get update -y
                   sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
-                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm} black
-                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,werkzeug,wheel}
+                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
+                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,werkzeug,wheel} black
+                  sudo -n apt-get install -y python3-{cairo,testresources}
                   sudo -n apt-get install -y python3-pytest-{cov,pylint,sugar,xdist}
                   sudo -n apt-get install -y python3-pytest-repeat || :
 
@@ -162,10 +163,12 @@ jobs:
             - name: Install package wheel and its platform-unavailable dependencies
               run: |
                   find src -mindepth 1 -delete
+                  python3 -m pip install --user 'pip>=21.0'
                   pip3 install --user $(echo dist/curldl-*.whl)'[test]'
+                  pip3 check
 
             - name: Tests with minimal static analysis
-              run: pytest-3 --no-cov
+              run: python3 -m pytest --no-cov
 
 
     test-dependency-sanity:
@@ -177,7 +180,7 @@ jobs:
             - name: Install minimal subset of platform Python packages
               run: |
                   sudo -n apt-get update -y
-                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
+                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm,cairo}
 
             - name: Download package distribution
               uses: actions/download-artifact@v3
@@ -188,6 +191,7 @@ jobs:
             - name: Install package wheel
               run: |
                   pip3 install --user dist/curldl-*.whl
+                  pip3 check
 
             - name: Sanity tests for package availability
               run: |
@@ -236,6 +240,7 @@ jobs:
                   find src -mindepth 1 -delete
                   ./venv.sh twine check --strict dist/*
                   ./venv.sh pip install dist/curldl-*.whl
+                  ./venv.sh pip check
 
             - name: Tests with minimal static analysis
               run: ./venv.sh pytest --no-cov
