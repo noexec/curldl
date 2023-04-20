@@ -18,7 +18,7 @@ class CommandLine:
         """Initialize argument parser and unhandled exception hook"""
         Log.setup_exception_logging_hooks()
         self.args = self._parse_arguments()
-        log.debug('Configured: %s', self.args)
+        log.debug("Configured: %s", self.args)
 
     @staticmethod
     def _configure_logger(args: argparse.Namespace) -> None:
@@ -27,7 +27,7 @@ class CommandLine:
 
         :param args: command-line arguments
         """
-        debug_log_level = 'debug'
+        debug_log_level = "debug"
         if args.verbose and args.log != debug_log_level:
             args.log = debug_log_level.capitalize()
 
@@ -36,7 +36,7 @@ class CommandLine:
         logging.basicConfig(level=loglevel)
 
         if args.log == debug_log_level.capitalize():
-            log.debug('Raising logging level to DEBUG')
+            log.debug("Raising logging level to DEBUG")
 
     @classmethod
     def _parse_arguments(cls) -> argparse.Namespace:
@@ -44,29 +44,63 @@ class CommandLine:
 
         :return: arguments after configuring the logger and possibly inferring other arguments
         """
-        parser = argparse.ArgumentParser(prog=__package__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser = argparse.ArgumentParser(
+            prog=__package__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        )
 
-        log_choices = ['debug', 'info', 'warning', 'error', 'critical']
+        log_choices = ["debug", "info", "warning", "error", "critical"]
         hash_algos = Cryptography.get_available_digests()
-        version = '%(prog)s ' + cls._get_package_version()
+        version = "%(prog)s " + cls._get_package_version()
 
-        parser.add_argument('-V', '--version', action='version', version=version, help='show program version and exit')
+        parser.add_argument(
+            "-V",
+            "--version",
+            action="version",
+            version=version,
+            help="show program version and exit",
+        )
 
-        parser.add_argument('-b', '--basedir', default='.', help='base download folder')
-        output_arg = parser.add_argument('-o', '--output', nargs=1, help='basedir-relative path to the '
-                                         'downloaded file, infer from URL if unspecified')
-        parser.add_argument('-s', '--size', type=int, help='expected download file size')
+        parser.add_argument("-b", "--basedir", default=".", help="base download folder")
+        output_arg = parser.add_argument(
+            "-o",
+            "--output",
+            nargs=1,
+            help="basedir-relative path to the "
+            "downloaded file, infer from URL if unspecified",
+        )
+        parser.add_argument(
+            "-s", "--size", type=int, help="expected download file size"
+        )
 
-        parser.add_argument('-a', '--algo', choices=hash_algos, default='sha256',
-                            metavar='ALGO', help='digest algorithm: ' + ', '.join(hash_algos))
-        parser.add_argument('-d', '--digest', help='expected hexadecimal digest value')
+        parser.add_argument(
+            "-a",
+            "--algo",
+            choices=hash_algos,
+            default="sha256",
+            metavar="ALGO",
+            help="digest algorithm: " + ", ".join(hash_algos),
+        )
+        parser.add_argument("-d", "--digest", help="expected hexadecimal digest value")
 
-        parser.add_argument('-p', '--progress', action='store_true', help='visualize progress on stderr')
-        parser.add_argument('-l', '--log', choices=log_choices, default='info',
-                            metavar='LEVEL', help='logging level: ' + ', '.join(log_choices))
-        parser.add_argument('-v', '--verbose', action='store_true', help='log metadata and headers (implies -l debug)')
+        parser.add_argument(
+            "-p", "--progress", action="store_true", help="visualize progress on stderr"
+        )
+        parser.add_argument(
+            "-l",
+            "--log",
+            choices=log_choices,
+            default="info",
+            metavar="LEVEL",
+            help="logging level: " + ", ".join(log_choices),
+        )
+        parser.add_argument(
+            "-v",
+            "--verbose",
+            action="store_true",
+            help="log metadata and headers (implies -l debug)",
+        )
 
-        parser.add_argument('url', nargs='+', help='URL(s) to download')
+        parser.add_argument("url", nargs="+", help="URL(s) to download")
 
         args = parser.parse_args()
         cls._configure_logger(args)
@@ -74,7 +108,9 @@ class CommandLine:
         return cls._infer_arguments(output_arg, args)
 
     @classmethod
-    def _infer_arguments(cls, output_arg: argparse.Action, args: argparse.Namespace) -> argparse.Namespace:
+    def _infer_arguments(
+        cls, output_arg: argparse.Action, args: argparse.Namespace
+    ) -> argparse.Namespace:
         """Infer missing arguments.
 
         :param output_arg: `output` argument to infer
@@ -83,11 +119,16 @@ class CommandLine:
         :raises ``argparse.ArgumentError``: multiple URLs are specified with ``output`` argument
         """
         if not args.output:
-            args.output = [os.path.basename(urllib.parse.unquote(urllib.parse.urlparse(url).path)) for url in args.url]
-            log.info('Saving download(s) to: %s', ', '.join(args.output))
+            args.output = [
+                os.path.basename(urllib.parse.unquote(urllib.parse.urlparse(url).path))
+                for url in args.url
+            ]
+            log.info("Saving download(s) to: %s", ", ".join(args.output))
 
         elif len(args.output) != len(args.url):
-            raise argparse.ArgumentError(output_arg, 'Cannot specify output file when downloading multiple URLs')
+            raise argparse.ArgumentError(
+                output_arg, "Cannot specify output file when downloading multiple URLs"
+            )
 
         return args
 
@@ -96,10 +137,16 @@ class CommandLine:
 
         :return: program exit status
         """
-        dl = Curldl(self.args.basedir, progress=self.args.progress, verbose=self.args.verbose)
+        dl = Curldl(
+            self.args.basedir, progress=self.args.progress, verbose=self.args.verbose
+        )
         for url, output in zip(self.args.url, self.args.output):
-            dl.get(url, rel_path=output, size=self.args.size,
-                   digests=self.args.digest and {self.args.algo: self.args.digest})
+            dl.get(
+                url,
+                rel_path=output,
+                size=self.args.size,
+                digests=self.args.digest and {self.args.algo: self.args.digest},
+            )
         return 0
 
     @staticmethod
@@ -112,7 +159,9 @@ class CommandLine:
         try:
             return metadata.version(__package__)
         except metadata.PackageNotFoundError:
-            log.error('Generated version not available, install package as usual or in editable mode')
+            log.error(
+                "Generated version not available, install package as usual or in editable mode"
+            )
             raise
 
 
