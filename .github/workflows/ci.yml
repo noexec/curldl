@@ -130,13 +130,9 @@ jobs:
 
 
     test-platform-packages:
-        strategy:
-            matrix:
-                platform-image: [ubuntu-latest, ubuntu-20.04]
-
-        name: Test ${{ matrix.platform-image }} / platform / wheel
+        name: Test Linux / platform / wheel
         needs: build-dist
-        runs-on: ${{ matrix.platform-image }}
+        runs-on: ubuntu-latest
 
         steps:
             - name: Check out repository
@@ -149,9 +145,8 @@ jobs:
                   sudo -n apt-get update -y
                   sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
                   sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
-                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,werkzeug,wheel}
-                  sudo -n apt-get install -y python3-pytest-{cov,pylint,sugar,xdist}
-                  sudo -n apt-get install -y python3-pytest-repeat || :
+                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,werkzeug,wheel,cairo} black
+                  sudo -n apt-get install -y python3-pytest-{cov,pylint,repeat,sugar,xdist}
 
             - name: Download package distribution
               uses: actions/download-artifact@v3
@@ -163,13 +158,14 @@ jobs:
               run: |
                   find src -mindepth 1 -delete
                   pip3 install --user $(echo dist/curldl-*.whl)'[test]'
+                  pip3 check
 
             - name: Tests with minimal static analysis
-              run: pytest-3 --no-cov
+              run: python3 -m pytest --no-cov
 
 
     test-dependency-sanity:
-        name: Test sanity on Linux / platform / wheel
+        name: Sanity on Linux / platform / wheel
         needs: build-dist
         runs-on: ubuntu-latest
 
@@ -177,7 +173,7 @@ jobs:
             - name: Install minimal subset of platform Python packages
               run: |
                   sudo -n apt-get update -y
-                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
+                  sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm,cairo}
 
             - name: Download package distribution
               uses: actions/download-artifact@v3
@@ -188,6 +184,7 @@ jobs:
             - name: Install package wheel
               run: |
                   pip3 install --user dist/curldl-*.whl
+                  pip3 check
 
             - name: Sanity tests for package availability
               run: |
@@ -236,6 +233,7 @@ jobs:
                   find src -mindepth 1 -delete
                   ./venv.sh twine check --strict dist/*
                   ./venv.sh pip install dist/curldl-*.whl
+                  ./venv.sh pip check
 
             - name: Tests with minimal static analysis
               run: ./venv.sh pytest --no-cov

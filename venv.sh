@@ -94,6 +94,7 @@ if [ "$1" = "install-venv" ]; then
     ${pip} install --use-pep517 "${script_dir}[test,dev,doc]"
     ${pip} uninstall -y ${package}
     ${pip} install -e "${script_dir}"
+    ${pip} check
     exit
 fi
 
@@ -102,13 +103,16 @@ if [ "$1" = "downgrade-venv" ]; then
     ${pip} install --use-pep517 --force-reinstall "${script_dir}[minimal]"
     ${pip} uninstall -y ${package}
     ${pip} install -e "${script_dir}"
+    ${pip} check
     exit
 fi
 
 
 if [ "$1" = "upgrade-venv" ]; then
     echo "Upgrading virtualenv..."
-    exec pip-review --require-virtualenv --auto
+    pip-review --require-virtualenv --auto
+    ${pip} check
+    exit
 fi
 
 
