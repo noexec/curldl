@@ -134,6 +134,27 @@ Finished downloading downloads/ubuntu-22.04.2-live-server-amd64.iso.part
 Note, however, that we didn't provide a size or digest for verification. Since the downloaded file is timestamped only once download completes, how does _curldl_ know that the file wasn't changed on the server in the meantime? The answer is that _curldl_ simply avoids removing large partial downloads in such cases — see documentation for _always_keep_part_bytes_ constructor parameter of _Curldl_.
 
 
+## Enabling Additional Protocols
+
+By default, _curldl_ enables the following protocols:
+
+- HTTP(S)
+- FTP(S)
+- SFTP
+
+In order to enable a different set of protocols, use the `allowed_protocols_bitmask` constructor argument. For instance, the code below downloads a _file://_ URI:
+
+```python
+import curldl, pycurl, pathlib
+protocols = pycurl.PROTO_FILE | pycurl.PROTO_HTTPS
+dl = curldl.Curldl(basedir="downloads", allowed_protocols_bitmask=protocols)
+file_uri = pathlib.Path(__file__).absolute().as_uri()
+dl.get(file_uri, "current_source.py")
+```
+
+To enable all protocols, use `allowed_protocols_bitmask=pycurl.PROTO_ALL`. Note, however, that there might be security repercussions.
+
+
 ## Escaping Base Directory
 
 Attempts to escape base directory are prevented, e.g.:
