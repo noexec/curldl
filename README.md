@@ -32,11 +32,11 @@ The following code snippet downloads a file and verifies its size and SHA-1 dige
 
 ```python
 import curldl, os
-dl = curldl.Curldl(basedir='downloads', progress=True)
-dl.get('https://kernel.org/pub/linux/kernel/Historic/linux-0.01.tar.gz',
-       'linux-0.01.tar.gz', size=73091,
-       digests={'sha1': '566b6fb6365e25f47b972efa1506932b87d3ca7d'})
-assert os.path.exists('downloads/linux-0.01.tar.gz')
+dl = curldl.Curldl(basedir="downloads", progress=True)
+dl.get("https://kernel.org/pub/linux/kernel/Historic/linux-0.01.tar.gz",
+       "linux-0.01.tar.gz", size=73091,
+       digests={"sha1": "566b6fb6365e25f47b972efa1506932b87d3ca7d"})
+assert os.path.exists("downloads/linux-0.01.tar.gz")
 ```
 
 If verification fails, the partial download is removed; otherwise it is renamed to the target file after being timestamped with _last-modified_ timestamp received from the server.
@@ -82,9 +82,9 @@ We can also request the same file without providing an expected size:
 
 ```python
 import curldl
-dl = curldl.Curldl(basedir='downloads', progress=True)
-dl.get('ftp://ftp.hosteurope.de/mirror/ftp.kernel.org/pub/linux/kernel/Historic/linux-0.01.tar.gz',
-       'linux-0.01.tar.gz')
+dl = curldl.Curldl(basedir="downloads", progress=True)
+dl.get("ftp://ftp.hosteurope.de/mirror/ftp.kernel.org/pub/linux/kernel/Historic/linux-0.01.tar.gz",
+       "linux-0.01.tar.gz")
 ```
 
 In this case, the download is skipped due to _If-Modified-Since_ check:
@@ -105,8 +105,8 @@ If a download is interrupted, it will be resumed on the next attempt (which may 
 
 ```python
 import curldl, os, urllib.parse as uparse
-dl = curldl.Curldl(basedir='downloads', progress=True)
-url = 'https://releases.ubuntu.com/22.04.2/ubuntu-22.04.2-live-server-amd64.iso'
+dl = curldl.Curldl(basedir="downloads", progress=True)
+url = "https://releases.ubuntu.com/22.04.2/ubuntu-22.04.2-live-server-amd64.iso"
 filename = os.path.basename(uparse.unquote(uparse.urlparse(url).path))
 dl.get(url, filename)
 ```
@@ -141,7 +141,7 @@ Attempts to escape base directory are prevented, e.g.:
 ```python
 import curldl, os
 dl = curldl.Curldl(basedir=os.curdir)
-dl.get('http://example.com/', os.path.join(os.pardir, 'file.txt'))
+dl.get("http://example.com/", os.path.join(os.pardir, "file.txt"))
 ```
 
 The above results in:
