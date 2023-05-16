@@ -209,13 +209,58 @@ In the table:
 
 The CI/CD pipeline succeeds only if _curldl_ package successfully builds and passes all the [pytest](https://pytest.org/) test cases with 100% [code coverage](https://coverage.readthedocs.io/), as well as [Pylint](https://pylint.readthedocs.io/), [Mypy](https://mypy-lang.org/) and [Bandit](https://bandit.readthedocs.io/) static code analysis. Code style checks are also a part of the pipeline. Note that the testing code is also covered by these restrictions.
 
-In order to run tests locally with Python interpreter installed in the system, install the _venv_ environment and run _pytest_ with static code analysis and code coverage:
+
+# Development
+
+## Python Environment
+
+The following commands install and activate a _venv_ environment in Linux, using the available Python 3 interpreter:
 ```shell
 ./venv.sh install-venv
+. venv/bin/activate
+```
+
+`venv.sh` is a convenience _venv_ wrapper that also enables some additional Python checks; you can use it to run Python code, or just activate the _venv_ environment instead as shown above.
+
+
+## Running Tests
+
+Use _pytest_ in order to run all test cases:
+```shell
 ./venv.sh pytest
 ```
 
-`venv.sh` is a convenience _venv_ wrapper that also enables some additional Python checks; you can simply activate the _venv_ environment instead. Testing with _Conda_ is possible as well — see the [CI/CD pipeline execution](https://github.com/noexec/curldl/actions) for details.
+In addition to the actual tests, pytest executes _Pylint_, _Mypy_, code coverage and code formatting plugins (_black_ and _isort_). Thus, make sure that all new code is covered by tests.
+
+Testing with _Conda_ is possible as well — see the [CI/CD pipeline execution](https://github.com/noexec/curldl/actions) for details.
+
+
+## Code Formatting
+
+Reformat the code with _black_ and _isort_ by running the following scripts:
+```shell
+misc/scripts/run-black.sh
+misc/scripts/run-isort.sh
+```
+
+This is only necessary if the tests fail due to code formatting.
+
+
+## Changelog Entries
+
+Upon authoring a set of code or documentation changes, prepare a changelog fragment using [towncrier](https://towncrier.readthedocs.io/) as follows:
+```shell
+towncrier create -c "Extend package usage documentation" 54.doc.txt
+```
+
+The command above creates a changelog fragment file in `docs/changelog.d`. See the output of `towncrier create --help` for supported fragment types. Note also that `54` above is the number of GitHub [pull request](https://github.com/noexec/curldl/pull/54), which is used to generate a pull request link when generating the combined changelog. So creation of new fragment needs to be done _after_ opening a pull request.
+
+When releasing a new version, the changelog file can be updated as follows:
+```shell
+towncrier build --version 1.0.1 [--draft]
+```
+
+Add _--draft_ option for a dry run first, because otherwise fragment files will be removed, and changelog file extended with the new entries.
 
 
 # Changelog
