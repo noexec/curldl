@@ -17,7 +17,7 @@ jobs:
     test-venv:
         strategy:
             matrix:
-                python-version: ['3.x', '3.10', '3.9', '3.8', 'pypy3.9', 'pypy3.8']
+                python-version: ['3.x', '3.10', '3.9', '3.8', 'pypy3.10', 'pypy3.8']
                 platform: [ubuntu, windows]
                 architecture: [x64, x86]
                 exclude:
@@ -28,7 +28,7 @@ jobs:
                     - platform: windows
                       python-version: '3.9'
                     - platform: windows
-                      python-version: 'pypy3.9'
+                      python-version: 'pypy3.10'
                     - platform: windows
                       python-version: 'pypy3.8'
 
