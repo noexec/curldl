@@ -1,14 +1,3 @@
-[![PyPI](https://img.shields.io/pypi/v/curldl)](https://pypi.org/project/curldl/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/curldl)](https://pypi.org/project/curldl/)
-[![GitHub Workflow Status](https://github.com/noexec/curldl/actions/workflows/ci.yml/badge.svg)](https://github.com/noexec/curldl/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/noexec/curldl/branch/develop/graph/badge.svg?token=QOA9KZ9A44)](https://codecov.io/gh/noexec/curldl)
-[![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
-[![Read the Docs](https://img.shields.io/readthedocs/curldl)](https://curldl.readthedocs.io/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Imports: isort](https://img.shields.io/badge/imports-isort-1674b1.svg?labelColor=ef8336)](https://pycqa.github.io/isort/)
-[![GitHub](https://img.shields.io/github/license/noexec/curldl)](https://github.com/noexec/curldl/blob/develop/LICENSE.md)
-
-
 # Introduction
 
 The __curldl__ Python module safely and reliably downloads files with [PycURL](http://pycurl.io/), which in turn is a wrapper for [libcurl](https://curl.se/libcurl/) file transfer library. The purpose of __curldl__ is providing a straightforward API for downloading files with the following features:
@@ -250,14 +239,14 @@ This is only necessary if the tests fail due to code formatting.
 
 Upon authoring a set of code or documentation changes, prepare a changelog fragment using [towncrier](https://towncrier.readthedocs.io/) as follows:
 ```shell
-towncrier create -c "Extend package usage documentation" 54.doc.txt
+towncrier create -c "Extend package usage documentation" 54.doc.md
 ```
 
-The command above creates a changelog fragment file in `docs/changelog.d`. See the output of `towncrier create --help` for supported fragment types. Note also that `54` above is the number of GitHub [pull request](https://github.com/noexec/curldl/pull/54), which is used to generate a pull request link when generating the combined changelog. So creation of new fragment needs to be done _after_ opening a pull request.
+The command above creates a changelog fragment file in `docs/changelog.d`. See the output of `towncrier create --help` for supported fragment types. Note also that `54` above is the number of GitHub [pull request](https://github.com/noexec/curldl/pull/54), which is used to format a pull request link when generating the combined changelog. So creation of new fragment needs to be done _after_ opening a pull request.
 
 When releasing a new version, the changelog file can be updated as follows:
 ```shell
-towncrier build --version 1.0.1 [--draft]
+towncrier build --version 1.x.y [--draft]
 ```
 
 Add _--draft_ option for a dry run first, because otherwise fragment files will be removed, and changelog file extended with the new entries.
@@ -271,3 +260,14 @@ See the [Changelog](https://github.com/noexec/curldl/blob/develop/docs/CHANGELOG
 # License
 
 This project is released under the [GNU LGPL License Version 3](https://github.com/noexec/curldl/blob/develop/LICENSE.md) or any later version.
+
+
+[![PyPI](https://img.shields.io/pypi/v/curldl)](https://pypi.org/project/curldl/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/curldl)](https://pypi.org/project/curldl/)
+[![GitHub Workflow Status](https://github.com/noexec/curldl/actions/workflows/ci.yml/badge.svg)](https://github.com/noexec/curldl/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/noexec/curldl/branch/develop/graph/badge.svg?token=QOA9KZ9A44)](https://codecov.io/gh/noexec/curldl)
+[![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+[![Read the Docs](https://img.shields.io/readthedocs/curldl)](https://curldl.readthedocs.io/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/imports-isort-1674b1.svg?labelColor=ef8336)](https://pycqa.github.io/isort/)
+[![GitHub](https://img.shields.io/github/license/noexec/curldl)](https://github.com/noexec/curldl/blob/develop/LICENSE.md)
