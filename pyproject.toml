@@ -93,7 +93,7 @@ build-backend = "setuptools.build_meta"
 
 
 [tool.setuptools.package-data]
-"curldl" = ["py.typed"]         # PIP 561
+"curldl" = ["py.typed"]         # PEP 561
 
 
 [tool.setuptools_scm]

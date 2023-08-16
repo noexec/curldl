@@ -195,7 +195,7 @@ Overall, _curldl_ is expected to not have any issues in any environment with Pyt
 
 A simplified configuration matrix covered by [CI/CD test + build pipeline](https://github.com/noexec/curldl/actions/workflows/ci.yml) at the time of writing this document is presented below:
 
-| Platform    | CPython 3.8           | CPython 3.9, PyPy 3.8–3.9  | CPython 3.10   | CPython 3.11 |
+| Platform    | CPython 3.8           | CPython 3.9, PyPy 3.8+3.10 | CPython 3.10   | CPython 3.11 |
 |-------------|-----------------------|----------------------------|----------------|--------------|
 | Ubuntu-x64  | venv, conda, platform | venv                       | venv, platform | venv, conda  |
 | Windows-x64 | venv, conda           |                            |                | venv, conda  |
