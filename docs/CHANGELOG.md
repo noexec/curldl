@@ -1,3 +1,22 @@
+curldl 1.0.1 (2023-08-19)
+=========================
+
+### Features
+
+- Extend CI/CD workflow with automatic package release to GitHub on version tag ([#46](https://github.com/noexec/curldl/pull/46))
+- Use _towncrier_ for Changelog updates maintenance ([#47](https://github.com/noexec/curldl/pull/47))
+- Integrate Sphinx builds of documentation and API reference ([#49](https://github.com/noexec/curldl/pull/49))
+- Integrate Codecov into CI/CD for code coverage artifacts ([#51](https://github.com/noexec/curldl/pull/51))
+- Add logger tracer for unraisable and thread exceptions ([#52](https://github.com/noexec/curldl/pull/52))
+- Integrate _Black_ code formatter and _isort_ imports sorter ([#53](https://github.com/noexec/curldl/pull/53))
+- Update CI/CD workflow with PyPy 3.10 tests ([#56](https://github.com/noexec/curldl/pull/56))
+
+### Improved Documentation
+
+- Fix API reference docstrings ([#49](https://github.com/noexec/curldl/pull/49))
+- Extend package usage documentation ([#54](https://github.com/noexec/curldl/pull/54))
+
+
 curldl 1.0.0 (2023-04-09)
 =========================
 
