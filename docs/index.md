@@ -1,4 +1,4 @@
-```{include} readme.md
+```{include} docs.md
 :end-before: "# Installation"
 ```
 
@@ -6,6 +6,6 @@
 ```{toctree}
 :hidden:
 
-readme.md
+docs.md
 API Reference <api/modules.rst>
 ```
