@@ -54,7 +54,6 @@ test = [
     "pytest-repeat",        # repeating tests (@pytest.mark.repeat)
     "pytest-sugar",         # look-and-feel for pytest progress
     "pytest-xdist[psutil]", # distributed tests (-n logical --no-pylint)
-    "setuptools-scm[toml]", # git tags-based versioning in editable install
     "types-pycurl",         # external type annotations: pycurl
     "types-tqdm"            # external type annotations: tqdm
 ]
@@ -67,7 +66,8 @@ dev = [
     "pip-review",           # upgrade outdated packages
     "towncrier",            # producing changelogs
     "twine",                # PyPI package publishing
-    "wheel"                 # build system, support PEP 518 installs
+    "wheel",                # build system (also downloaded during build)
+    "setuptools-scm[toml]"  # git tags-based versioning (also downloaded during build)
 ]
 
 doc = [
