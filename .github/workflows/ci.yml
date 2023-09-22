@@ -272,7 +272,7 @@ jobs:
               with:
                   files: dist/*
                   draft: ${{ contains(github.ref, 'dev') }}
-                  prerelease: ${{ contains(github.ref, 'rc') || contains(github.ref, 'a') || contains(github.ref, 'b') }}
+                  prerelease: ${{ contains(github.ref, 'rc') || contains(github.ref, 'b') }}
 
             - name: Publish distribution to PyPI if non-dev tag
               if: (!contains(github.ref, 'dev'))
