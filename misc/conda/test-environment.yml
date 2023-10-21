@@ -18,6 +18,7 @@ dependencies:
     - pytest-mock
     - pytest-mypy
     - pytest-pylint
+    - pylint<3
     - pytest-sugar
     - setuptools-scm[toml]
     - types-pycurl
