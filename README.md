@@ -184,12 +184,12 @@ Overall, _curldl_ is expected to not have any issues in any environment with Pyt
 
 A simplified configuration matrix covered by [CI/CD test + build pipeline](https://github.com/noexec/curldl/actions/workflows/ci.yml) at the time of writing this document is presented below:
 
-| Platform    | CPython 3.8           | CPython 3.9, PyPy 3.8+3.10 | CPython 3.10   | CPython 3.11 |
-|-------------|-----------------------|----------------------------|----------------|--------------|
-| Ubuntu-x64  | venv, conda, platform | venv                       | venv, platform | venv, conda  |
-| Windows-x64 | venv, conda           |                            |                | venv, conda  |
-| Windows-x86 | venv                  |                            |                | venv         |
-| macOS-x64   | conda                 |                            |                | conda        |
+| Platform    | CPython 3.8           | CPython 3.9+3.12, PyPy 3.8+3.10 | CPython 3.10   | CPython 3.11 |
+|-------------|-----------------------|---------------------------------|----------------|--------------|
+| Ubuntu-x64  | venv, conda, platform | venv                            | venv, platform | venv, conda  |
+| Windows-x64 | venv, conda           |                                 |                | venv, conda  |
+| Windows-x86 | venv                  |                                 |                | venv         |
+| macOS-x64   | conda                 |                                 |                | conda        |
 
 In the table:
 * _venv_ — virtual environment with all package dependencies and [editable package install](https://pip.pypa.io/en/stable/topics/local-project-installs/); on Ubuntu includes tests with minimal versions of package dependencies;
