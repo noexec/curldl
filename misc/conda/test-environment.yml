@@ -17,16 +17,16 @@ dependencies:
     - pytest-httpserver
     - pytest-mock
     - pytest-mypy
-    - pytest-pylint
-    - pylint<3
+    - pylint
     - pytest-sugar
     - setuptools-scm[toml]
     - types-pycurl
+    - types-tqdm
     - attrs
     # editable install and unsatisfied runtime dependencies
     - pip
     - pip:
         - pytest-black-ng
         - pytest-isort
-        - types-tqdm
+        - pytest-pylint
         - -e ../..
