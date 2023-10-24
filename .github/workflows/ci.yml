@@ -17,14 +17,14 @@ jobs:
     test-venv:
         strategy:
             matrix:
-                python-version: ['3.x', '3.11', '3.10', '3.9', '3.8', 'pypy3.10', 'pypy3.8']
+                python-version: ['3.12', '3.11', '3.10', '3.9', '3.8', 'pypy3.10', 'pypy3.8']
                 platform: [ubuntu, windows]
                 architecture: [x64, x86]
                 exclude:
                     - platform: ubuntu
                       architecture: x86
                     - platform: windows
-                      python-version: '3.x'
+                      python-version: '3.12'
                     - platform: windows
                       python-version: '3.10'
                     - platform: windows
@@ -55,6 +55,7 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   architecture: ${{ matrix.architecture }}
+                  check-latest: true
 
             - name: Install package in editable mode and its dependencies
               shell: sh
@@ -70,7 +71,7 @@ jobs:
               run: ./venv.sh pytest
 
             - name: Archive code coverage report
-              if: ((success() && matrix.python-version == '3.x' && matrix.platform == 'ubuntu') || steps.test.conclusion == 'failure') && !startsWith(matrix.python-version, 'pypy')
+              if: ((success() && matrix.python-version == '3.12' && matrix.platform == 'ubuntu') || steps.test.conclusion == 'failure') && !startsWith(matrix.python-version, 'pypy')
               uses: actions/upload-artifact@v3
               with:
                   name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}-${{ matrix.architecture }}
@@ -297,7 +298,7 @@ jobs:
             - name: Download code coverage artifact
               uses: actions/download-artifact@v3
               with:
-                  name: coverage-report-test-venv-3.x-ubuntu-x64
+                  name: coverage-report-test-venv-3.12-ubuntu-x64
                   path: coverage
 
             - name: Upload coverage reports to Codecov
