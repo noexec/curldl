@@ -97,7 +97,7 @@ jobs:
     test-conda:
         strategy:
             matrix:
-                python-version: ['3.11', '3.8']
+                python-version: ['3.12', '3.11', '3.8']
                 platform: [ubuntu, windows, macos]
 
         name: Test miniconda / ${{ matrix.python-version }}-${{ matrix.platform }}
@@ -125,7 +125,7 @@ jobs:
               run: pytest
 
             - name: Archive code coverage report
-              if: ((success() && matrix.python-version == '3.11' && matrix.platform != 'ubuntu') || steps.test.conclusion == 'failure')
+              if: ((success() && matrix.python-version == '3.12' && matrix.platform != 'ubuntu') || steps.test.conclusion == 'failure')
               uses: actions/upload-artifact@v3
               with:
                   name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}

@@ -7,7 +7,7 @@ channels:
 dependencies:
     # runtime dependencies
     - python>=3.8
-    - pycurl>=7.44.0
+    - main::pycurl>=7.44.0
     - tenacity>=6.2.0
     - tqdm>=4.50.0
     # testing dependencies
