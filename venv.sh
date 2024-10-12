@@ -50,9 +50,6 @@ export PYTHONDEVMODE=1
 export PYTHONIOENCODING=utf-8
 # export PYTHONWARNDEFAULTENCODING=1
 
-# pytest-sugar 0.9.7 (adding it to pytest's filterwarnings is too late to disable the warning)
-export PYTHONWARNINGS="ignore::DeprecationWarning:pytest_sugar"
-
 if [ "$1" = "install-venv" ]; then
     echo "Installing virtualenv..."
     if [ -e "${venv_dir}" ] || [ -n "${VIRTUAL_ENV}" ]; then

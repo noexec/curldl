@@ -182,19 +182,19 @@ Overall, _curldl_ is expected to not have any issues in any environment with Pyt
 
 # Testing
 
-A simplified configuration matrix covered by [CI/CD test + build pipeline](https://github.com/noexec/curldl/actions/workflows/ci.yml) at the time of writing this document is presented below:
+A simplified configuration matrix covered by [CI/CD test + build pipeline](https://github.com/noexec/curldl/actions/workflows/ci.yml) is presented below:
 
-| Platform    | CPython 3.8           | CPython 3.9+3.12, PyPy 3.8+3.10 | CPython 3.10   | CPython 3.11 |
-|-------------|-----------------------|---------------------------------|----------------|--------------|
-| Ubuntu-x64  | venv, conda, platform | venv                            | venv, platform | venv, conda  |
-| Windows-x64 | venv, conda           |                                 |                | venv, conda  |
-| Windows-x86 | venv                  |                                 |                | venv         |
-| macOS-x64   | conda                 |                                 |                | conda        |
+| Platform    | CPython 3.8,3.11 | CPython 3.12 | CPython 3.9,3.10,3.13, PyPy 3.8,3.10 | CPython 3.10,3.12 |
+|-------------|------------------|--------------|--------------------------------------|-------------------|
+| Ubuntu-x64  | venv, conda      | venv, conda  | venv                                 | platform          |
+| Windows-x64 | venv, conda      |              |                                      |                   |
+| Windows-x86 | venv             |              |                                      |                   |
+| macOS-x64   | conda            | conda        |                                      |                   |
 
 In the table:
 * _venv_ — virtual environment with all package dependencies and [editable package install](https://pip.pypa.io/en/stable/topics/local-project-installs/); on Ubuntu includes tests with minimal versions of package dependencies;
 * _conda_ — _Miniconda_ with package dependencies installed from _mini-forge_ channel, and _curldl_ as editable package install;
-* _platform_ — as many dependencies as possible satisfied via Ubuntu package repository, and _curldl_ as _wheel_ install.
+* _platform_ — as many dependencies as possible satisfied via Ubuntu package repository, and _curldl_ as _wheel_ install; see [images](https://github.com/actions/runner-images) for OS and platform Python versions.
 
 The CI/CD pipeline succeeds only if _curldl_ package successfully builds and passes all the [pytest](https://pytest.org/) test cases with 100% [code coverage](https://coverage.readthedocs.io/), as well as [Pylint](https://pylint.readthedocs.io/), [Mypy](https://mypy-lang.org/) and [Bandit](https://bandit.readthedocs.io/) static code analysis. Code style checks are also a part of the pipeline. Note that the testing code is also covered by these restrictions.
 

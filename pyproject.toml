@@ -20,7 +20,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: File Transfer Protocol (FTP)",
@@ -110,7 +110,7 @@ issue_format = "[#{issue}](https://github.com/noexec/curldl/pull/{issue})"
 
 
 [tool.pytest.ini_options]
-addopts = "--maxfail=10 --mypy --pylint --black --isort --cov --cov-report=term --cov-report=html --cov-report=xml"
+addopts = "--mypy --pylint --black --isort --cov --cov-report=term --cov-report=html --cov-report=xml"
 testpaths = ["tests", "src"]    # "src" required for pylint and mypy (whereas cov considers imported files)
 cache_dir = "build/tests/pytest_cache"
 
@@ -130,6 +130,7 @@ good-names-rgxs = "^(dl)$"
 [tool.pylint.design]
 min-public-methods = 1
 max-args = 15
+max-positional-arguments = 10
 max-attributes = 15
 max-locals = 20
 

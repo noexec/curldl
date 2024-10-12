@@ -56,7 +56,7 @@ nitpick_ignore = [
 
 html_theme = "furo"
 
-html_theme_options = {"navigation_with_keys": True, "top_of_page_button": None}
+html_theme_options = {"navigation_with_keys": True, "top_of_page_buttons": []}
 
 autoclass_content = "both"
 

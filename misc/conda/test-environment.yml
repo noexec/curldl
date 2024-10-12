@@ -7,7 +7,7 @@ channels:
 dependencies:
     # runtime dependencies
     - python>=3.8
-    - main::pycurl>=7.44.0
+    - pycurl>=7.44.0
     - tenacity>=6.2.0
     - tqdm>=4.50.0
     # testing dependencies
@@ -17,16 +17,16 @@ dependencies:
     - pytest-httpserver
     - pytest-mock
     - pytest-mypy
+    - pytest-pylint
     - pylint
     - pytest-sugar
     - setuptools-scm[toml]
     - types-pycurl
     - types-tqdm
     - attrs
-    # editable install and unsatisfied runtime dependencies
+    # editable install and testing dependencies missing from conda-forge
     - pip
     - pip:
         - pytest-black-ng
         - pytest-isort
-        - pytest-pylint
         - -e ../..

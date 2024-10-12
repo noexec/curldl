@@ -1,4 +1,5 @@
 """Interface for PycURL functionality"""
+
 from __future__ import annotations
 
 import http.client

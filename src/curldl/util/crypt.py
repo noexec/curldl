@@ -1,4 +1,5 @@
 """Cryptographic utilities for internal use"""
+
 from __future__ import annotations
 
 import hashlib

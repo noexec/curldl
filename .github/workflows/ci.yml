@@ -17,12 +17,14 @@ jobs:
     test-venv:
         strategy:
             matrix:
-                python-version: ['3.12', '3.11', '3.10', '3.9', '3.8', 'pypy3.10', 'pypy3.8']
+                python-version: ['3.13', '3.12', '3.11', '3.10', '3.9', '3.8', 'pypy3.10', 'pypy3.8']
                 platform: [ubuntu, windows]
                 architecture: [x64, x86]
                 exclude:
                     - platform: ubuntu
                       architecture: x86
+                    - platform: windows
+                      python-version: '3.13'
                     - platform: windows
                       python-version: '3.12'
                     - platform: windows
@@ -133,9 +135,13 @@ jobs:
 
 
     test-platform-packages:
+        strategy:
+            matrix:
+                platform: [ubuntu-latest, ubuntu-22.04]
+
         name: Test Linux / platform / wheel
         needs: build-dist
-        runs-on: ubuntu-latest
+        runs-on: ${{ matrix.platform }}
 
         steps:
             - name: Check out repository
