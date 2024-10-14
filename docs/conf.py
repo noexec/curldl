@@ -2,7 +2,7 @@ import subprocess  # nosec
 from importlib import metadata
 
 project = "curldl"
-copyright = "2023, Michael Orlov"
+copyright = "2024, Michael Orlov"
 
 release = metadata.version(project)
 version = ".".join(release.split(".")[:2])
