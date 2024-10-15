@@ -8,6 +8,7 @@ on:
             - develop
             - 'release/**'
             - 'workflow/**'
+            - 'bugfix/**'
         tags:
             - 'v*'
     schedule:
@@ -156,8 +157,8 @@ jobs:
               run: |
                   sudo -n apt-get update -y
                   sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
-                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,werkzeug,wheel,cairo} black
-                  sudo -n apt-get install -y python3-pytest-{cov,pylint,repeat,sugar,xdist}
+                  sudo -n apt-get install -y python3-{bandit,cairo,filelock,mypy,pytest,rich,setuptools-scm,werkzeug,wheel} black
+                  sudo -n apt-get install -y python3-pytest-{cov,mock,pylint,repeat,sugar,xdist}
 
             - name: Download package distribution
               uses: actions/download-artifact@v4

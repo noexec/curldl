@@ -42,7 +42,8 @@ minimal = [
 ]
 
 test = [
-    "bandit[toml]",         # security issues checks
+    "bandit[toml]>=1.7.5",  # security issues checks
+    "mypy>=0.981",          # type hinting verifier
     "pytest",               # pytest testing framework
     "pytest-black-ng",      # code formatter (--black)
     "pytest-cov",           # code coverage (--cov)
@@ -52,7 +53,7 @@ test = [
     "pytest-mypy",          # type hinting verifier (--mypy)
     "pytest-pylint",        # static code analysis (--pylint)
     "pytest-repeat",        # repeating tests (@pytest.mark.repeat)
-    "pytest-sugar",         # look-and-feel for pytest progress
+    "pytest-sugar>=0.9.7",  # look-and-feel for pytest progress
     "pytest-xdist[psutil]", # distributed tests (-n logical --no-pylint)
     "types-pycurl",         # external type annotations: pycurl
     "types-tqdm"            # external type annotations: tqdm
@@ -161,6 +162,7 @@ exclude = '[\\/]_version\.py$'
 
 
 [tool.isort]
+known_first_party = ["curldl"]
 profile = "black"
 
 
