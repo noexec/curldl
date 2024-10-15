@@ -5,13 +5,10 @@ script_dir=${0%/*}
 [ "${script_dir}" != "$0" ] || script_dir=.
 script_name=${0##*/}
 venv_dir="${script_dir}/venv"
-assets_dir="${script_dir}/assets/gohlke"
 
 python="python3"                # non-venv and venv interpreter name
 pip="pip --require-virtualenv"  # used only in venv
 package="curldl"
-
-pycurl_win32_build_version="7.45.1"
 
 
 error()
@@ -60,6 +57,7 @@ if [ "$1" = "install-venv" ]; then
 
     python_platform=$(${python} -c 'import sys; print(sys.platform)')
     if [ "${python_platform}" != "win32" ] && ! curl-config --version 1>/dev/null 2>&1; then
+        # NOTE: curl-config is not required if PyPi has binary pycurl builds
         error "curl-config is not available, run: sudo apt install libcurl4-openssl-dev"
     fi
 
@@ -69,16 +67,6 @@ if [ "$1" = "install-venv" ]; then
 
     # venv --upgrade-deps is available from Python 3.9.0
     ${python} -m pip --require-virtualenv install -U pip setuptools
-
-    if [ "${python_platform}" = "win32" ]; then
-
-        python_short_version=$(${python} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
-        python_bits=$(${python} -c 'import sys; print(sys.maxsize.bit_length()+1)')
-        pycurl_build_suffix="win"
-        [ "${python_bits}" = 32 ] || pycurl_build_suffix=${pycurl_build_suffix}_amd
-
-        ${pip} install --use-pep517 "${assets_dir}/pycurl-${pycurl_win32_build_version}-cp${python_short_version}-cp${python_short_version}-${pycurl_build_suffix}${python_bits}.whl"
-    fi
 
     ${pip} install --use-pep517 "${script_dir}[test,dev,doc]"
     ${pip} uninstall -y ${package}
