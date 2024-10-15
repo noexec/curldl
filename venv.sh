@@ -11,7 +11,6 @@ python="python3"                # non-venv and venv interpreter name
 pip="pip --require-virtualenv"  # used only in venv
 package="curldl"
 
-pycurl_pypy_compatible_version="7.44.1"
 pycurl_win32_build_version="7.45.1"
 
 
@@ -71,7 +70,6 @@ if [ "$1" = "install-venv" ]; then
     # venv --upgrade-deps is available from Python 3.9.0
     ${python} -m pip --require-virtualenv install -U pip setuptools
 
-    python_implementation=$(${python} -c 'import sys; print(sys.implementation.name)')
     if [ "${python_platform}" = "win32" ]; then
 
         python_short_version=$(${python} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
@@ -80,9 +78,6 @@ if [ "$1" = "install-venv" ]; then
         [ "${python_bits}" = 32 ] || pycurl_build_suffix=${pycurl_build_suffix}_amd
 
         ${pip} install --use-pep517 "${assets_dir}/pycurl-${pycurl_win32_build_version}-cp${python_short_version}-cp${python_short_version}-${pycurl_build_suffix}${python_bits}.whl"
-
-    elif [ "${python_implementation}" = "pypy" ]; then
-        ${pip} install --use-pep517 "pycurl==${pycurl_pypy_compatible_version}"
     fi
 
     ${pip} install --use-pep517 "${script_dir}[test,dev,doc]"
