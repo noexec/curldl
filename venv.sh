@@ -57,7 +57,7 @@ if [ "$1" = "install-venv" ]; then
 
     python_platform=$(${python} -c 'import sys; print(sys.platform)')
     if [ "${python_platform}" != "win32" ] && ! curl-config --version 1>/dev/null 2>&1; then
-        # NOTE: curl-config is not required if PyPi has binary pycurl builds
+        # NOTE: curl-config is not required if PyPI has native PycURL builds
         error "curl-config is not available, run: sudo apt install libcurl4-openssl-dev"
     fi
 
