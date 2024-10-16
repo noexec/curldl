@@ -34,16 +34,16 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "pycurl>=7.44.0",       # PycURL wrapper for cURL library
-    "pycurl>=7.45.2; python_version>='3.13'",
-    "pycurl<7.45.2; implementation_name=='pypy'",
+    "pycurl>=7.45.2; python_version>='3.13'",     # need Py_TRASHCAN_SAFE_END fix
+    "pycurl<7.45.2; implementation_name=='pypy'", # need Py_TRASHCAN_BEGIN
     "tenacity>=6.2.0",      # retry policies
     "tqdm>=4.50.0"          # console progress bar
 ]
 
 [project.optional-dependencies]
 minimal = [
-    "pycurl==7.44.0; python_version<'3.13'",  # need CURLINFO_CONDITION_UNMET
-    "pycurl==7.45.2; python_version>='3.13'", # need Py_TRASHCAN_SAFE_END fix
+    "pycurl==7.44.0; python_version<'3.13'",      # need CURLINFO_CONDITION_UNMET
+    "pycurl==7.45.2; python_version>='3.13'",     # need Py_TRASHCAN_SAFE_END fix
     "tenacity==6.2.0",      # need type hinting and no-warnings asyncio (also requires six)
     "tqdm==4.50.0"          # need colour parameter (also requires colorama on win32)
 ]
@@ -51,6 +51,7 @@ minimal = [
 test = [
     "bandit[toml]>=1.7.5",  # security issues checks
     "mypy>=0.981",          # type hinting verifier
+    "pycurl<7.45; implementation_name=='pypy'",   # JIT-related bug when testing
     "pytest",               # pytest testing framework
     "pytest-black-ng",      # code formatter (--black)
     "pytest-cov",           # code coverage (--cov)
