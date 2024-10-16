@@ -20,7 +20,11 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: File Transfer Protocol (FTP)",
@@ -30,19 +34,24 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "pycurl>=7.44.0",       # PycURL wrapper for cURL library
+    "pycurl>=7.45.2; python_version>='3.13'",     # need Py_TRASHCAN_SAFE_END fix
+    "pycurl<7.45.2; implementation_name=='pypy'", # need Py_TRASHCAN_BEGIN
     "tenacity>=6.2.0",      # retry policies
     "tqdm>=4.50.0"          # console progress bar
 ]
 
 [project.optional-dependencies]
 minimal = [
-    "pycurl==7.44.0",       # need CURLINFO_CONDITION_UNMET
+    "pycurl==7.44.0; python_version<'3.13'",      # need CURLINFO_CONDITION_UNMET
+    "pycurl==7.45.2; python_version>='3.13'",     # need Py_TRASHCAN_SAFE_END fix
     "tenacity==6.2.0",      # need type hinting and no-warnings asyncio (also requires six)
     "tqdm==4.50.0"          # need colour parameter (also requires colorama on win32)
 ]
 
 test = [
-    "bandit[toml]",         # security issues checks
+    "bandit[toml]>=1.7.5",  # security issues checks
+    "mypy>=0.981",          # type hinting verifier
+    "pycurl<7.45; implementation_name=='pypy'",   # JIT-related bug when testing
     "pytest",               # pytest testing framework
     "pytest-black-ng",      # code formatter (--black)
     "pytest-cov",           # code coverage (--cov)
@@ -52,7 +61,7 @@ test = [
     "pytest-mypy",          # type hinting verifier (--mypy)
     "pytest-pylint",        # static code analysis (--pylint)
     "pytest-repeat",        # repeating tests (@pytest.mark.repeat)
-    "pytest-sugar",         # look-and-feel for pytest progress
+    "pytest-sugar>=0.9.7",  # look-and-feel for pytest progress
     "pytest-xdist[psutil]", # distributed tests (-n logical --no-pylint)
     "types-pycurl",         # external type annotations: pycurl
     "types-tqdm"            # external type annotations: tqdm
@@ -64,6 +73,7 @@ dev = [
     "pipdeptree",           # show packages dependency tree
     "pip-autoremove",       # remove unused package dependencies
     "pip-review",           # upgrade outdated packages
+    "pycparser; implementation_name=='pypy'", # needed for pip check
     "towncrier",            # producing changelogs
     "twine",                # PyPI package publishing
     "wheel",                # build system (also downloaded during build)
@@ -110,7 +120,7 @@ issue_format = "[#{issue}](https://github.com/noexec/curldl/pull/{issue})"
 
 
 [tool.pytest.ini_options]
-addopts = "--maxfail=10 --mypy --pylint --black --isort --cov --cov-report=term --cov-report=html --cov-report=xml"
+addopts = "--mypy --pylint --black --isort --cov --cov-report=term --cov-report=html --cov-report=xml"
 testpaths = ["tests", "src"]    # "src" required for pylint and mypy (whereas cov considers imported files)
 cache_dir = "build/tests/pytest_cache"
 
@@ -130,6 +140,7 @@ good-names-rgxs = "^(dl)$"
 [tool.pylint.design]
 min-public-methods = 1
 max-args = 15
+max-positional-arguments = 10
 max-attributes = 15
 max-locals = 20
 
@@ -160,6 +171,7 @@ exclude = '[\\/]_version\.py$'
 
 
 [tool.isort]
+known_first_party = ["curldl"]
 profile = "black"
 
 

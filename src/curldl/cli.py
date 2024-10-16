@@ -1,4 +1,5 @@
 """Command-line interface, should be called via main module: python -m curldl"""
+
 import argparse
 import logging
 import os

@@ -8,4 +8,4 @@ project_dir="${script_dir}/../.."
 code_roots="src tests docs"
 
 cd "${project_dir}"
-isort ${code_roots} "$@"
+python3 -m isort ${code_roots} "$@"

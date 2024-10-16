@@ -8,6 +8,7 @@ on:
             - develop
             - 'release/**'
             - 'workflow/**'
+            - 'bugfix/**'
         tags:
             - 'v*'
     schedule:
@@ -16,18 +17,21 @@ on:
 jobs:
     test-venv:
         strategy:
+            fail-fast: false
             matrix:
-                python-version: ['3.12', '3.11', '3.10', '3.9', '3.8', 'pypy3.10', 'pypy3.8']
+                python-version: ['3.13', '3.12', '3.11', '3.10', '3.9', '3.8', 'pypy3.10', 'pypy3.8']
                 platform: [ubuntu, windows]
                 architecture: [x64, x86]
                 exclude:
                     - platform: ubuntu
                       architecture: x86
                     - platform: windows
-                      python-version: '3.12'
+                      python-version: '3.13'
                     - platform: windows
+                      architecture: x64
                       python-version: '3.10'
                     - platform: windows
+                      architecture: x86
                       python-version: '3.9'
                     - platform: windows
                       python-version: 'pypy3.10'
@@ -39,7 +43,7 @@ jobs:
 
         steps:
             - name: Check out repository and assets
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
                   persist-credentials: false
                   submodules: recursive
@@ -72,7 +76,7 @@ jobs:
 
             - name: Archive code coverage report
               if: ((success() && matrix.python-version == '3.12' && matrix.platform == 'ubuntu') || steps.test.conclusion == 'failure') && !startsWith(matrix.python-version, 'pypy')
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
                   name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}-${{ matrix.architecture }}
                   path: build/tests/coverage/
@@ -96,8 +100,9 @@ jobs:
 
     test-conda:
         strategy:
+            fail-fast: false
             matrix:
-                python-version: ['3.11', '3.8']
+                python-version: ['3.12', '3.11', '3.8']
                 platform: [ubuntu, windows, macos]
 
         name: Test miniconda / ${{ matrix.python-version }}-${{ matrix.platform }}
@@ -105,12 +110,12 @@ jobs:
 
         steps:
             - name: Check out repository
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
                   persist-credentials: false
 
             - name: Set up Miniconda with Python ${{ matrix.python-version }} and package dependencies
-              uses: conda-incubator/setup-miniconda@v2
+              uses: conda-incubator/setup-miniconda@v3
               with:
                   python-version: ${{ matrix.python-version }}
                   miniconda-version: latest
@@ -125,34 +130,38 @@ jobs:
               run: pytest
 
             - name: Archive code coverage report
-              if: ((success() && matrix.python-version == '3.11' && matrix.platform != 'ubuntu') || steps.test.conclusion == 'failure')
-              uses: actions/upload-artifact@v3
+              if: ((success() && matrix.python-version == '3.12' && matrix.platform != 'ubuntu') || steps.test.conclusion == 'failure')
+              uses: actions/upload-artifact@v4
               with:
                   name: coverage-report-${{ github.job }}-${{ matrix.python-version }}-${{ matrix.platform }}
                   path: build/tests/coverage/
 
 
     test-platform-packages:
+        strategy:
+            fail-fast: false
+            matrix:
+                platform: [ubuntu-latest, ubuntu-22.04]
+
         name: Test Linux / platform / wheel
         needs: build-dist
-        runs-on: ubuntu-latest
+        runs-on: ${{ matrix.platform }}
 
         steps:
             - name: Check out repository
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
                   persist-credentials: false
 
             - name: Install maximal subset of platform Python packages
               run: |
                   sudo -n apt-get update -y
-                  sudo -n apt-get install -y --no-upgrade libcurl4-openssl-dev
                   sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm}
-                  sudo -n apt-get install -y python3-{bandit,filelock,mypy,pytest,setuptools-scm,werkzeug,wheel,cairo} black
-                  sudo -n apt-get install -y python3-pytest-{cov,pylint,repeat,sugar,xdist}
+                  sudo -n apt-get install -y python3-{bandit,cairo,filelock,mypy,pytest,rich,setuptools-scm,werkzeug,wheel} black
+                  sudo -n apt-get install -y python3-pytest-{cov,mock,pylint,repeat,sugar,xdist}
 
             - name: Download package distribution
-              uses: actions/download-artifact@v3
+              uses: actions/download-artifact@v4
               with:
                 name: curldl-dist
                 path: dist
@@ -179,7 +188,7 @@ jobs:
                   sudo -n apt-get install -y python3-{pycurl,tenacity,tqdm,cairo}
 
             - name: Download package distribution
-              uses: actions/download-artifact@v3
+              uses: actions/download-artifact@v4
               with:
                 name: curldl-dist
                 path: dist
@@ -202,7 +211,7 @@ jobs:
 
         steps:
             - name: Check out repository
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
                   persist-credentials: false
                   fetch-depth: 0
@@ -224,7 +233,7 @@ jobs:
               run: ./venv.sh misc/scripts/run-sphinx.sh
 
             - name: Upload documentation artifacts
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
                   name: curldl-docs
                   path: build/docs/
@@ -242,7 +251,7 @@ jobs:
               run: ./venv.sh pytest --no-cov
 
             - name: Upload build artifacts
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
                   name: curldl-dist
                   path: dist/
@@ -259,7 +268,7 @@ jobs:
 
         steps:
             - name: Download package distribution artifact
-              uses: actions/download-artifact@v3
+              uses: actions/download-artifact@v4
               with:
                   name: curldl-dist
                   path: dist
@@ -271,7 +280,7 @@ jobs:
                   repository-url: https://test.pypi.org/legacy/
 
             - name: Publish Release to GitHub
-              uses: softprops/action-gh-release@v1
+              uses: softprops/action-gh-release@v2
               with:
                   files: dist/*
                   draft: ${{ contains(github.ref, 'dev') }}
@@ -291,18 +300,18 @@ jobs:
 
         steps:
             - name: Check out repository
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
                   persist-credentials: false
 
             - name: Download code coverage artifact
-              uses: actions/download-artifact@v3
+              uses: actions/download-artifact@v4
               with:
                   name: coverage-report-test-venv-3.12-ubuntu-x64
                   path: coverage
 
             - name: Upload coverage reports to Codecov
-              uses: codecov/codecov-action@v3
+              uses: codecov/codecov-action@v4
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   directory: coverage

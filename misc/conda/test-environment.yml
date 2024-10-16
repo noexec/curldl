@@ -12,21 +12,21 @@ dependencies:
     - tqdm>=4.50.0
     # testing dependencies
     - black
+    - mypy>=0.981
     - pytest
     - pytest-cov
     - pytest-httpserver
     - pytest-mock
     - pytest-mypy
+    - pytest-pylint
     - pylint
-    - pytest-sugar
+    - pytest-sugar>=0.9.7
     - setuptools-scm[toml]
     - types-pycurl
     - types-tqdm
-    - attrs
-    # editable install and unsatisfied runtime dependencies
+    # editable install and testing dependencies missing from conda-forge
     - pip
     - pip:
         - pytest-black-ng
         - pytest-isort
-        - pytest-pylint
         - -e ../..

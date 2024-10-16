@@ -1,4 +1,5 @@
 """Cryptography class unit tests"""
+
 import hashlib
 import pathlib
 

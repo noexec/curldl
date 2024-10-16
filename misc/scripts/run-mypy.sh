@@ -8,4 +8,4 @@ project_dir="${script_dir}/../.."
 code_roots="src tests"
 
 cd "${project_dir}"
-mypy ${code_roots} "$@"
+python3 -m mypy ${code_roots} "$@"

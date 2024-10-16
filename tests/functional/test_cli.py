@@ -1,4 +1,5 @@
 """CLI entry point functional tests"""
+
 from __future__ import annotations
 
 import argparse
@@ -55,9 +56,9 @@ def test_run_cli_module(
     """Verify that running the module via entry point and via ``__main__.py`` works,
     test success and failure"""
     package_base_path = pathlib.Path(inspect.getfile(curldl)).parent / os.path.pardir
-    command = ENTRY_POINT if use_entry_point else f"python -m {PACKAGE_NAME}"
+    command = [ENTRY_POINT] if use_entry_point else [sys.executable, "-m", PACKAGE_NAME]
     result = subprocess.run(
-        f"{command} {arguments}".split(),  # nosec
+        command + arguments.split(),  # nosec
         check=False,
         text=True,
         encoding="ascii",
