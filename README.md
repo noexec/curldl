@@ -184,17 +184,18 @@ Overall, _curldl_ is expected to not have any issues in any environment with Pyt
 
 A simplified configuration matrix covered by [CI/CD test + build pipeline](https://github.com/noexec/curldl/actions/workflows/ci.yml) is presented below:
 
-| Platform    | 3.8 | 3.9 | 3.10 | 3.11 | 3.12  | 3.13 | PyPy 3.8 | PyPy 3.10 |
-|-------------|-----|-----|------|------|-------|------|----------|-----------|
-| Ubuntu-x64  | v c | v   | v p  | v c  | v c p | v    | v        | v         |
-| Windows-x64 | v c | v   |      | v c  | v c   |      |          |           |
-| Windows-x86 | v   |     | v    | v    | v     |      |          |           |
-| macOS-x64   | c   |     |      | c    | c     |      |          |           |
+| Platform    | 3.8 | 3.9 | 3.10  | 3.11 | 3.12    | 3.13 | PyPy 3.8 | PyPy 3.10 |
+|-------------|-----|-----|-------|------|---------|------|----------|-----------|
+| Ubuntu-x64  | v c | v   | v p s | v c  | v c p s | v    | v        | v         |
+| Windows-x64 | v c | v   |       | v c  | v c     |      |          |           |
+| Windows-x86 | v   |     | v     | v    | v       |      |          |           |
+| macOS-x64   | c   |     |       | c    | c       |      |          |           |
 
 In the table:
 * _v_ (venv) — virtual environment with all package dependencies and [editable package install](https://pip.pypa.io/en/stable/topics/local-project-installs/); on Ubuntu includes tests with minimal versions of package dependencies;
 * _c_ (conda) — _Miniconda_ with package dependencies installed from _mini-forge_ channel, and _curldl_ as editable package install;
-* _p_ (platform) — as many dependencies as possible satisfied via Ubuntu package repository, and _curldl_ as _wheel_ install; see [images](https://github.com/actions/runner-images) for OS and platform Python versions.
+* _p_ (platform) — as many dependencies as possible satisfied via Ubuntu package repository, and _curldl_ as _wheel_ install; see [images](https://github.com/actions/runner-images) for OS and platform Python versions;
+* _s_ (sanity) — only the required dependencies are installed via Ubuntu package repository, and _curldl_ is used to fetch content via HTTPS protocol.
 
 The CI/CD pipeline succeeds only if _curldl_ package successfully builds and passes all the [pytest](https://pytest.org/) test cases with 100% [code coverage](https://coverage.readthedocs.io/), as well as [Pylint](https://pylint.readthedocs.io/), [Mypy](https://mypy-lang.org/) and [Bandit](https://bandit.readthedocs.io/) static code analysis. Code style checks are also a part of the pipeline. Note that the testing code is also covered by these restrictions.
 

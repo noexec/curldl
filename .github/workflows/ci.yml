@@ -141,7 +141,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                platform: [ubuntu-latest, ubuntu-22.04]
+                platform: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04]
 
         name: Test Linux / platform / wheel
         needs: build-dist
@@ -169,7 +169,7 @@ jobs:
             - name: Install package wheel and its platform-unavailable dependencies
               run: |
                   find src -mindepth 1 -delete
-                  pip3 install --user $(echo dist/curldl-*.whl)'[test]'
+                  PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install --user $(echo dist/curldl-*.whl)'[test]'
                   pip3 check
 
             - name: Tests with minimal static analysis
@@ -177,9 +177,14 @@ jobs:
 
 
     test-dependency-sanity:
+        strategy:
+            fail-fast: false
+            matrix:
+                platform: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04]
+
         name: Sanity on Linux / platform / wheel
         needs: build-dist
-        runs-on: ubuntu-latest
+        runs-on: ${{ matrix.platform }}
 
         steps:
             - name: Install minimal subset of platform Python packages
@@ -193,9 +198,10 @@ jobs:
                 name: curldl-dist
                 path: dist
 
-            - name: Install package wheel
+            # no --no-deps because python3-tqdm on ubuntu-24.04 is apparently not correctly installed
+            - name: Install package wheel without dependencies
               run: |
-                  pip3 install --user dist/curldl-*.whl
+                  PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install --user dist/curldl-*.whl
                   pip3 check
 
             - name: Sanity tests for package availability
